@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria CSB - Sistema Completo</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState } = React;
+        
+        const Upload = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>;
+        const CheckCircle = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
+        const AlertCircle = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
+        const X = () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>;
+
+        const AuditEngine = {
+          equivalenciaFerias: { '6262': '5262', '6254': '5254', '6281': '5281', '6272': '5272', '5020': '5023' },
+          
+          limpar: (str) => {
+            return str.toLowerCase()
+              .replace(/[áàãâä]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i')
+              .replace(/[óòõôö]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ç/g, 'c')
+              .replace(/[^a-z0-9]/g, '');
+          },
+          
+          // Busca com ESPAÇOS permitidos
+          buscarCampoEspacos: (row, palavrasChave) => {
+            const keys = Object.keys(row);
+            
+            for (let palavraOriginal of palavrasChave) {
+              // Normaliza mas MANTÉM espaços para comparação
+              const palavraNorm = palavraOriginal.toLowerCase()
+                .replace(/[áàãâä]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i')
+                .replace(/[óòõôö]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ç/g, 'c')
+                .replace(/[�]/g, ''); // Remove caracteres quebrados
+              
+              for (let key of keys) {
+                const keyNorm = key.toLowerCase()
+                  .replace(/[áàãâä]/g, 'a').replace(/[éèêë]/g, 'e').replace(/[íìîï]/g, 'i')
+                  .replace(/[óòõôö]/g, 'o').replace(/[úùûü]/g, 'u').replace(/ç/g, 'c')
+                  .replace(/[�]/g, '');
+                
+                if (keyNorm.includes(palavraNorm)) {
+                  const valor = row[key];
+                  if (valor && valor.toString().trim() !== '') {
+                    return valor.toString().trim();
+                  }
+                }
+              }
+            }
+            return null;
+          },
+          
+          normalizarMatricula: (row) => {
+            return AuditEngine.buscarCampoEspacos(row, ['matricula colaborador', 'matricula', 'matr']);
+          },
+          
+          extrairValor: (row) => {
+            const valorStr = AuditEngine.buscarCampoEspacos(row, ['valor']);
+            if (!valorStr) return 0;
+            const val = valorStr.replace(/\./g, '').replace(',', '.');
+            return parseFloat(val) || 0;
+          },
+          
+          extrairCodigoEvento: (row) => {
+            // Tenta com ESPAÇO primeiro (mais específico)
+            const resultado = AuditEngine.buscarCampoEspacos(row, [
+              'codigo evento',
+              'codigoevento',
+              'cod evento', 
+              'codev'
+            ]);
+            return resultado;
+          },
+          
+          extrairNomeColaborador: (row) => {
+            return AuditEngine.buscarCampoEspacos(row, ['nome colaborador', 'colaborador', 'nome']);
+          },
+          
+          criarIndiceEventos: (folha, label) => {
+            console.log(`\n🔧 ${label}...`);
+            
+            if (folha.length > 0) {
+              const colunas = Object.keys(folha[0]).filter(k => k !== '_lineNumber');
+              console.log(`   📋 ${colunas.length} colunas: ${colunas.slice(0, 5).join(', ')}...`);
+            }
+            
+            const indice = {};
+            let registrosValidos = 0;
+            let semMatricula = 0;
+            let semCodigo = 0;
+            
+            folha.forEach((row, idx) => {
+              const matricula = AuditEngine.normalizarMatricula(row);
+              const codigo = AuditEngine.extrairCodigoEvento(row);
+              const valor = AuditEngine.extrairValor(row);
+              
+              if (idx < 2) {
+                console.log(`   🔍 [${idx + 1}] mat="${matricula}" cod="${codigo}" val=${valor}`);
+              }
+              
+              if (!matricula) { semMatricula++; return; }
+              if (!codigo) { semCodigo++; return; }
+              
+              registrosValidos++;
+              if (!indice[matricula]) indice[matricula] = {};
+              if (!indice[matricula][codigo]) indice[matricula][codigo] = [];
+              
+              indice[matricula][codigo].push({ 
+                valor, 
+                linha: row._lineNumber || idx + 2, 
+                nome: AuditEngine.extrairNomeColaborador(row),
+                dados: row 
+              });
+            });
+            
+            const totalMat = Object.keys(indice).length;
+            const totalEvt = Object.values(indice).reduce((s, e) => 
+              s + Object.values(e).reduce((ss, o) => ss + o.length, 0), 0
+            );
+            
+            console.log(`   ✅ ${registrosValidos} válidos | ${totalMat} matrículas | ${totalEvt} eventos`);
+            if (semMatricula > 0) console.log(`   ⚠️  ${semMatricula} sem matrícula`);
+            if (semCodigo > 0) console.log(`   ⚠️  ${semCodigo} sem código`);
+            
+            if (totalMat > 0) {
+              const amostra = Object.keys(indice)[0];
+              const evts = Object.keys(indice[amostra]).slice(0, 3);
+              console.log(`   📌 Mat ${amostra}: [${evts.join(', ')}]`);
+            }
+            
+            return indice;
+          },
+          
+          executarAuditoria: (folhaAtual, folhaAnterior, baseAdmitidos, baseDemitidos, baseFerias, baseLicenciados) => {
+            console.log('\n' + '='.repeat(50));
+            console.log('🔍 AUDITORIA CSB');
+            console.log('='.repeat(50));
+            
+            const indiceAtual = AuditEngine.criarIndiceEventos(folhaAtual, 'FOLHA ATUAL');
+            const indiceAnterior = AuditEngine.criarIndiceEventos(folhaAnterior, 'FOLHA ANTERIOR');
+            
+            console.log(`\n📊 ${Object.keys(indiceAtual).length} vs ${Object.keys(indiceAnterior).length} matrículas`);
+            
+            // R1
+            console.log('\n━━━ R1: EVENTOS NOVOS ━━━');
+            const r1 = [];
+            for (const [mat, evts] of Object.entries(indiceAtual)) {
+              for (const [cod, ocs] of Object.entries(evts)) {
+                const existia = indiceAnterior[mat]?.[cod];
+                const equiv = AuditEngine.equivalenciaFerias[cod];
+                const temEquiv = equiv && indiceAnterior[mat]?.[equiv];
+                
+                if (!existia && !temEquiv) {
+                  ocs.forEach(oc => {
+                    r1.push({
+                      regra: 'R1', tipo: 'EVENTO_NOVO', 
+                      severidade: oc.valor > 1000 ? 'ALTA' : 'MEDIA',
+                      matricula: mat, nome: oc.nome, codigoEvento: cod, valor: oc.valor,
+                      descricao: `Novo: ${cod} (${oc.nome || 'N/A'})`, 
+                      impacto: oc.valor
+                    });
+                  });
+                }
+              }
+            }
+            console.log(`✅ ${r1.length} divergências`);
+            
+            // R2
+            console.log('\n━━━ R2: EVENTOS REMOVIDOS ━━━');
+            const r2 = [];
+            for (const [mat, evts] of Object.entries(indiceAnterior)) {
+              for (const [cod, ocs] of Object.entries(evts)) {
+                const existe = indiceAtual[mat]?.[cod];
+                const equivInv = Object.keys(AuditEngine.equivalenciaFerias)
+                  .find(k => AuditEngine.equivalenciaFerias[k] === cod);
+                const temEquiv = equivInv && indiceAtual[mat]?.[equivInv];
+                
+                if (!existe && !temEquiv) {
+                  ocs.forEach(oc => {
+                    r2.push({
+                      regra: 'R2', tipo: 'EVENTO_REMOVIDO',
+                      severidade: oc.valor > 1000 ? 'ALTA' : 'MEDIA',
+                      matricula: mat, nome: oc.nome, codigoEvento: cod, valorAnterior: oc.valor,
+                      descricao: `Removido: ${cod}`,
+                      impacto: -oc.valor
+                    });
+                  });
+                }
+              }
+            }
+            console.log(`✅ ${r2.length} divergências`);
+            
+            // R3
+            console.log('\n━━━ R3: VALOR ALTERADO ━━━');
+            const r3 = [];
+            const tol = 5;
+            for (const [mat, evts] of Object.entries(indiceAtual)) {
+              for (const [cod, ocsAtual] of Object.entries(evts)) {
+                const ocsAnt = indiceAnterior[mat]?.[cod];
+                if (!ocsAnt) continue;
+                
+                const valAtual = ocsAtual.reduce((s, o) => s + o.valor, 0);
+                const valAnt = ocsAnt.reduce((s, o) => s + o.valor, 0);
+                const var_ = valAtual - valAnt;
+                const varPerc = valAnt !== 0 ? (var_ / valAnt) * 100 : 0;
+                
+                if (Math.abs(varPerc) > tol && Math.abs(var_) > 10) {
+                  r3.push({
+                    regra: 'R3', tipo: 'VALOR_ALTERADO',
+                    severidade: Math.abs(varPerc) > 20 ? 'ALTA' : 'MEDIA',
+                    matricula: mat, nome: ocsAtual[0].nome, 
+                    codigoEvento: cod, valorAnterior: valAnt, valorAtual: valAtual,
+                    variacao: var_, variacaoPerc: varPerc,
+                    descricao: `${cod} variou ${Math.abs(varPerc).toFixed(1)}%`,
+                    impacto: var_
+                  });
+                }
+              }
+            }
+            console.log(`✅ ${r3.length} divergências`);
+            
+            // R7
+            console.log('\n━━━ R7: DUPLICADOS ━━━');
+            const r7 = [];
+            for (const [mat, evts] of Object.entries(indiceAtual)) {
+              for (const [cod, ocs] of Object.entries(evts)) {
+                if (ocs.length > 1) {
+                  r7.push({
+                    regra: 'R7', tipo: 'EVENTO_DUPLICADO', severidade: 'ALTA',
+                    matricula: mat, nome: ocs[0].nome,
+                    codigoEvento: cod, quantidadeOcorrencias: ocs.length,
+                    descricao: `${cod} repetido ${ocs.length}x`,
+                    impacto: ocs.reduce((s, o) => s + o.valor, 0)
+                  });
+                }
+              }
+            }
+            console.log(`✅ ${r7.length} divergências`);
+            
+            // R5
+            console.log('\n━━━ R5: ADMITIDOS ━━━');
+            const r5 = [];
+            const matsAdm = new Set(baseAdmitidos.map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean));
+            matsAdm.forEach(mat => {
+              if (!indiceAtual[mat]) {
+                r5.push({ 
+                  regra: 'R5', tipo: 'ADMITIDO_NAO_NA_FOLHA', severidade: 'ALTA',
+                  matricula: mat, descricao: 'Admitido ausente', impacto: 0 
+                });
+              }
+              if (indiceAnterior[mat]) {
+                r5.push({ 
+                  regra: 'R5', tipo: 'ADMITIDO_JA_EXISTIA', severidade: 'ALTA',
+                  matricula: mat, descricao: 'Admitido já existia', impacto: 0 
+                });
+              }
+            });
+            console.log(`✅ ${matsAdm.size} admitidos → ${r5.length} divergências`);
+            
+            // R6
+            console.log('\n━━━ R6: DEMITIDOS ━━━');
+            const r6 = [];
+            const matsDem = new Set(baseDemitidos.map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean));
+            matsDem.forEach(mat => {
+              if (indiceAtual[mat]) {
+                const evts = Object.keys(indiceAtual[mat]);
+                const temNaoResc = evts.some(c => !['9000','9001','9002','9003'].includes(c));
+                if (temNaoResc) {
+                  r6.push({ 
+                    regra: 'R6', tipo: 'DEMITIDO_NA_FOLHA', severidade: 'ALTA',
+                    matricula: mat, descricao: `${evts.length} eventos`, impacto: 0 
+                  });
+                }
+              }
+            });
+            console.log(`✅ ${matsDem.size} demitidos → ${r6.length} divergências`);
+            
+            const todas = [...r1, ...r2, ...r3, ...r5, ...r6, ...r7];
+            
+            const metricas = {
+              total: todas.length,
+              porSeveridade: {
+                ALTA: todas.filter(d => d.severidade === 'ALTA').length,
+                MEDIA: todas.filter(d => d.severidade === 'MEDIA').length,
+              },
+              porRegra: { R1: r1.length, R2: r2.length, R3: r3.length, R5: r5.length, R6: r6.length, R7: r7.length },
+              impactoFinanceiro: {
+                total: todas.reduce((s, d) => s + (d.impacto || 0), 0),
+                positivo: todas.filter(d => (d.impacto || 0) > 0).reduce((s, d) => s + d.impacto, 0),
+                negativo: todas.filter(d => (d.impacto || 0) < 0).reduce((s, d) => s + d.impacto, 0)
+              }
+            };
+            
+            console.log('\n' + '='.repeat(50));
+            console.log(`✅ TOTAL: ${metricas.total} divergências`);
+            console.log(`🔴 ${metricas.porSeveridade.ALTA} alta | 🟡 ${metricas.porSeveridade.MEDIA} média`);
+            console.log(`💰 R$ ${metricas.impactoFinanceiro.total.toFixed(2)}`);
+            console.log('='.repeat(50));
+            
+            return { divergencias: todas, metricas };
+          }
+        };
+
+        const PayrollAuditApp = () => {
+          const [etapa, setEtapa] = useState('upload');
+          const [arquivos, setArquivos] = useState({});
+          const [stats, setStats] = useState({});
+          const [resultados, setResultados] = useState(null);
+
+          const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+          const calcStats = (rows, tipo) => {
+            const mats = new Set();
+            let total = 0;
+            rows.forEach(r => {
+              const m = AuditEngine.normalizarMatricula(r);
+              if (m) mats.add(m);
+              if (tipo.includes('folha')) total += AuditEngine.extrairValor(r);
+            });
+            return { totalRegistros: rows.length, colaboradores: mats.size, totalValor: tipo.includes('folha') ? total : null };
+          };
+
+          const handleUpload = async (tipo, e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const text = await file.text();
+            const lines = text.split('\n').filter(l => l.trim());
+            const start = tipo.includes('folha') ? 2 : 1;
+            const header = lines[start].split(';').map(h => h.replace(/"/g, '').trim());
+            const rows = lines.slice(start + 1).map((line, idx) => {
+              const vals = line.split(';').map(v => v.replace(/"/g, '').trim());
+              const row = { _lineNumber: idx + start + 2 };
+              header.forEach((h, i) => { row[h] = vals[i] || ''; });
+              return row;
+            });
+            
+            setArquivos(p => ({ ...p, [tipo]: { nome: file.name, rows } }));
+            setStats(p => ({ ...p, [tipo]: calcStats(rows, tipo) }));
+          };
+
+          const remover = (tipo) => {
+            const a = { ...arquivos }; delete a[tipo];
+            const s = { ...stats }; delete s[tipo];
+            setArquivos(a); setStats(s);
+          };
+
+          const executar = () => {
+            console.clear();
+            setEtapa('proc');
+            setTimeout(() => {
+              const res = AuditEngine.executarAuditoria(
+                arquivos.folha_atual?.rows || [], arquivos.folha_anterior?.rows || [],
+                arquivos.admitidos?.rows || [], arquivos.demitidos?.rows || [],
+                arquivos.ferias?.rows || [], arquivos.licenciados?.rows || []
+              );
+              setResultados(res);
+              setEtapa('res');
+            }, 1500);
+          };
+
+          if (etapa === 'proc') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+                <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+                  <h2 className="text-2xl font-bold mb-2">⏳ Processando</h2>
+                  <p className="text-slate-600">Executando R1-R7...</p>
+                </div>
+              </div>
+            );
+          }
+
+          if (etapa === 'res' && resultados) {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+                <div className="max-w-7xl mx-auto space-y-6">
+                  <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl p-6">
+                    <h2 className="text-2xl font-bold">📋 Resultados - CSB Drogarias</h2>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
+                      <div className="text-sm text-slate-600">Total</div>
+                      <div className="text-3xl font-bold text-purple-700">{resultados.metricas.total}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
+                      <div className="text-sm text-slate-600">Alta</div>
+                      <div className="text-3xl font-bold text-red-700">{resultados.metricas.porSeveridade.ALTA}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-amber-500">
+                      <div className="text-sm text-slate-600">Média</div>
+                      <div className="text-3xl font-bold text-amber-700">{resultados.metricas.porSeveridade.MEDIA}</div>
+                    </div>
+                    <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
+                      <div className="text-sm text-slate-600">Impacto</div>
+                      <div className="text-xl font-bold text-green-700">{fmt(resultados.metricas.impactoFinanceiro.total)}</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-xl shadow p-6">
+                    <h3 className="font-bold mb-4">Por Regra</h3>
+                    <div className="grid grid-cols-6 gap-3">
+                      {Object.entries(resultados.metricas.porRegra).map(([r, q]) => (
+                        <div key={r} className="text-center p-3 bg-slate-50 rounded border">
+                          <div className="text-xs text-slate-600">{r}</div>
+                          <div className="text-2xl font-bold">{q}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {resultados.divergencias.length > 0 && (
+                    <div className="bg-white rounded-xl shadow p-6">
+                      <h3 className="font-bold mb-4">Top 100 Divergências</h3>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {resultados.divergencias.slice(0, 100).map((d, i) => (
+                          <div key={i} className={`border-l-4 rounded p-3 text-sm ${
+                            d.severidade === 'ALTA' ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-500'
+                          }`}>
+                            <div className="flex justify-between">
+                              <div>
+                                <div className="flex gap-2 mb-1">
+                                  <b>{d.regra}</b>
+                                  <span className="text-xs bg-white px-2 rounded">{d.matricula}</span>
+                                  {d.codigoEvento && <span className="text-xs font-mono">{d.codigoEvento}</span>}
+                                </div>
+                                <p className="text-xs">{d.descricao}</p>
+                                {d.variacao !== undefined && (
+                                  <div className="text-xs mt-1">
+                                    {fmt(d.valorAnterior)} → {fmt(d.valorAtual)} 
+                                    <span className={d.variacao >= 0 ? 'text-green-700' : 'text-red-700'}>
+                                      ({d.variacao >= 0 ? '+' : ''}{d.variacaoPerc?.toFixed(1)}%)
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                d.severidade === 'ALTA' ? 'bg-red-200' : 'bg-amber-200'
+                              }`}>
+                                {d.severidade}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <button onClick={() => { setEtapa('upload'); setResultados(null); }} 
+                    className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg">
+                    ← Voltar
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
+          const arqs = [
+            { key: 'folha_atual', nome: '📄 Folha Atual' },
+            { key: 'folha_anterior', nome: '📋 Folha Anterior' },
+            { key: 'admitidos', nome: '👋 Admitidos' },
+            { key: 'demitidos', nome: '💔 Demitidos' },
+            { key: 'ferias', nome: '🏖️ Férias' },
+            { key: 'licenciados', nome: '🥼 Licenciados' }
+          ];
+          
+          const ok = arqs.every(a => arquivos[a.key]);
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
+              <div className="max-w-6xl mx-auto">
+                <h1 className="text-3xl font-bold mb-2">📊 Auditoria CSB</h1>
+                <p className="text-slate-600 mb-6">Sistema automatizado de auditoria de folha</p>
+
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-6 text-sm">
+                  💡 Pressione <b>F12</b> para ver logs detalhados
+                </div>
+
+                <div className="bg-white rounded-xl p-4 mb-6">
+                  <div className="h-2 bg-slate-200 rounded-full">
+                    <div className="h-full bg-purple-600 transition-all" 
+                      style={{ width: `${(Object.keys(arquivos).length / 6) * 100}%` }}></div>
+                  </div>
+                  <p className="text-center text-sm mt-2">{Object.keys(arquivos).length}/6</p>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                  {arqs.map(a => (
+                    <div key={a.key} className={`border-2 rounded-lg p-4 ${
+                      arquivos[a.key] ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-white'
+                    }`}>
+                      <div className="flex justify-between mb-2">
+                        <span className="font-bold text-sm">{a.nome}</span>
+                        {arquivos[a.key] && (
+                          <button onClick={() => remover(a.key)} className="text-red-600 hover:bg-red-100 p-1 rounded">
+                            <X />
+                          </button>
+                        )}
+                      </div>
+                      
+                      {arquivos[a.key] ? (
+                        <div className="bg-white rounded p-2 text-xs space-y-1">
+                          <p className="font-semibold truncate">{arquivos[a.key].nome}</p>
+                          {stats[a.key] && (
+                            <>
+                              <div>📊 {stats[a.key].totalRegistros.toLocaleString('pt-BR')}</div>
+                              <div>👥 {stats[a.key].colaboradores}</div>
+                              {stats[a.key].totalValor && <div>💰 {fmt(stats[a.key].totalValor)}</div>}
+                            </>
+                          )}
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block">
+                          <input type="file" accept=".csv" className="hidden" onChange={(e) => handleUpload(a.key, e)} />
+                          <div className="border-2 border-dashed rounded p-3 text-center hover:bg-blue-50">
+                            <Upload />
+                            <span className="text-xs mt-1 block">CSV</span>
+                          </div>
+                        </label>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button 
+                  disabled={!ok}
+                  onClick={executar}
+                  className={`w-full py-4 rounded-lg font-bold text-lg ${
+                    ok ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  }`}>
+                  ▶️ Executar Auditoria
+                </button>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<PayrollAuditApp />);
+    </script>
+</body>
+</html>
