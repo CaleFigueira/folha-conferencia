@@ -1,0 +1,1146 @@
+{
+  "empresa": "CSB DROGARIAS S/A",
+  "data_exportacao": "2025-12-10T23:26:32.030Z",
+  "resumo": {
+    "total_arquivos": 6,
+    "arquivos_validos": 6,
+    "total_registros": 43458
+  },
+  "arquivos": {
+    "folha_atual": {
+      "tipo_arquivo": "folha_atual",
+      "nome_original": "base_folha_mes_202511.csv",
+      "hash_md5": "95dcf6f",
+      "tamanho_bytes": 8228047,
+      "data_upload": "2025-12-10T23:25:02.556Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Código Empresa",
+            "aliases": [
+              "Cdigo Empresa",
+              "codigo empresa",
+              "cdigo empresa"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Matrícula Colaborador",
+            "aliases": [
+              "Matrcula Colaborador",
+              "matricula colaborador",
+              "matrcula colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Nome Colaborador",
+            "aliases": [
+              "nome colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Tipo Situação",
+            "aliases": [
+              "Tipo Situao",
+              "tipo situacao",
+              "tipo situao"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Data Admissão",
+            "aliases": [
+              "Data Admisso",
+              "data admissao",
+              "data admisso"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Tipo Evento",
+            "aliases": [
+              "tipo evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Código Evento",
+            "aliases": [
+              "Cdigo Evento",
+              "codigo evento",
+              "cdigo evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Evento",
+            "aliases": [
+              "evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Valor",
+            "aliases": [
+              "valor"
+            ],
+            "type": "number",
+            "required": true
+          }
+        ],
+        "separator": ";",
+        "skipLines": 2
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          },
+          {
+            "type": "INFO",
+            "message": "2 linha(s) de cabeçalho pulada(s)",
+            "details": "\"Eventos Calculados - Conta Contbil\" | \"Referncia\";\"11/2025\""
+          }
+        ],
+        "campos": {
+          "Código Empresa": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Matrícula Colaborador": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Nome Colaborador": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Tipo Situação": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Data Admissão": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Tipo Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Código Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Valor": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 20893,
+        "total_colunas": 30,
+        "colunas_detectadas": [
+          "C�digo Empresa",
+          "Empresa",
+          "Matr�cula Colaborador",
+          "Nome Colaborador",
+          "Sexo",
+          "PCD",
+          "Data Admiss�o",
+          "Tipo Situa��o",
+          "Data Rescis�o",
+          "Motivo do Desligamento",
+          "C�digo Estabelecimento",
+          "Estabelecimento",
+          "C�digo Unidade Organizacional",
+          "Unidade Organizacional",
+          "C�digo �rg�o Respons�vel",
+          "�rg�o Respons�vel",
+          "C�digo Centro Custo",
+          "Centro Custo",
+          "C�digo Cargo",
+          "Cargo",
+          "C�digo Folha",
+          "Folha",
+          "Tipo Evento",
+          "C�digo Evento",
+          "Evento",
+          "Valor",
+          "C�digo Conta - Cr�dito",
+          "Descri��o Conta - Cr�dito",
+          "C�digo Conta - D�bito",
+          "Descri��o Conta - D�bito"
+        ],
+        "colunas_esperadas": [
+          "Código Empresa",
+          "Matrícula Colaborador",
+          "Nome Colaborador",
+          "Tipo Situação",
+          "Data Admissão",
+          "Tipo Evento",
+          "Código Evento",
+          "Evento",
+          "Valor"
+        ],
+        "linhas_puladas": [
+          "\"Eventos Calculados - Conta Cont�bil\"",
+          "\"Refer�ncia\";\"11/2025\""
+        ]
+      }
+    },
+    "folha_anterior": {
+      "tipo_arquivo": "folha_anterior",
+      "nome_original": "base_folha_mes_anterior_202510.csv",
+      "hash_md5": "4130a957",
+      "tamanho_bytes": 7600560,
+      "data_upload": "2025-12-10T23:25:10.731Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Código Empresa",
+            "aliases": [
+              "Cdigo Empresa",
+              "codigo empresa",
+              "cdigo empresa"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Matrícula Colaborador",
+            "aliases": [
+              "Matrcula Colaborador",
+              "matricula colaborador",
+              "matrcula colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Nome Colaborador",
+            "aliases": [
+              "nome colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Tipo Situação",
+            "aliases": [
+              "Tipo Situao",
+              "tipo situacao",
+              "tipo situao"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Data Admissão",
+            "aliases": [
+              "Data Admisso",
+              "data admissao",
+              "data admisso"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Tipo Evento",
+            "aliases": [
+              "tipo evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Código Evento",
+            "aliases": [
+              "Cdigo Evento",
+              "codigo evento",
+              "cdigo evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Evento",
+            "aliases": [
+              "evento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Valor",
+            "aliases": [
+              "valor"
+            ],
+            "type": "number",
+            "required": true
+          }
+        ],
+        "separator": ";",
+        "skipLines": 2
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          },
+          {
+            "type": "INFO",
+            "message": "2 linha(s) de cabeçalho pulada(s)",
+            "details": "\"Eventos Calculados - Conta Contbil\" | \"Referncia\";\"10/2025\""
+          }
+        ],
+        "campos": {
+          "Código Empresa": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Matrícula Colaborador": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Nome Colaborador": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Tipo Situação": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Data Admissão": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Tipo Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Código Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Evento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Valor": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 19246,
+        "total_colunas": 30,
+        "colunas_detectadas": [
+          "C�digo Empresa",
+          "Empresa",
+          "Matr�cula Colaborador",
+          "Nome Colaborador",
+          "Sexo",
+          "PCD",
+          "Data Admiss�o",
+          "Tipo Situa��o",
+          "Data Rescis�o",
+          "Motivo do Desligamento",
+          "C�digo Estabelecimento",
+          "Estabelecimento",
+          "C�digo Unidade Organizacional",
+          "Unidade Organizacional",
+          "C�digo �rg�o Respons�vel",
+          "�rg�o Respons�vel",
+          "C�digo Centro Custo",
+          "Centro Custo",
+          "C�digo Cargo",
+          "Cargo",
+          "C�digo Folha",
+          "Folha",
+          "Tipo Evento",
+          "C�digo Evento",
+          "Evento",
+          "Valor",
+          "C�digo Conta - Cr�dito",
+          "Descri��o Conta - Cr�dito",
+          "C�digo Conta - D�bito",
+          "Descri��o Conta - D�bito"
+        ],
+        "colunas_esperadas": [
+          "Código Empresa",
+          "Matrícula Colaborador",
+          "Nome Colaborador",
+          "Tipo Situação",
+          "Data Admissão",
+          "Tipo Evento",
+          "Código Evento",
+          "Evento",
+          "Valor"
+        ],
+        "linhas_puladas": [
+          "\"Eventos Calculados - Conta Cont�bil\"",
+          "\"Refer�ncia\";\"10/2025\""
+        ]
+      }
+    },
+    "ferias": {
+      "tipo_arquivo": "ferias",
+      "nome_original": "base_ferias_mes_202511.csv",
+      "hash_md5": "79f841f6",
+      "tamanho_bytes": 16257,
+      "data_upload": "2025-12-10T23:25:45.258Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Matrícula",
+            "aliases": [
+              "Matrcula",
+              "matricula",
+              "matrcula"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Colaborador",
+            "aliases": [
+              "colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Início do Período de Gozo",
+            "aliases": [
+              "Incio do Perodo de Gozo",
+              "inicio do periodo de gozo",
+              "incio do perodo de gozo"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Fim do Período de Gozo",
+            "aliases": [
+              "Fim do Perodo de Gozo",
+              "fim do periodo de gozo",
+              "fim do perodo de gozo"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Status",
+            "aliases": [
+              "status"
+            ],
+            "type": "string",
+            "required": true
+          }
+        ],
+        "separator": ";",
+        "skipLines": 1
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          },
+          {
+            "type": "INFO",
+            "message": "1 linha(s) de cabeçalho pulada(s)",
+            "details": "\"Frias de Colaboradores\""
+          }
+        ],
+        "campos": {
+          "Matrícula": {
+            "total": 70,
+            "valid": 70,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Colaborador": {
+            "total": 70,
+            "valid": 70,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Início do Período de Gozo": {
+            "total": 70,
+            "valid": 70,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Fim do Período de Gozo": {
+            "total": 70,
+            "valid": 70,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Status": {
+            "total": 70,
+            "valid": 70,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 70,
+        "total_colunas": 19,
+        "colunas_detectadas": [
+          "C�digo Empresa",
+          "Raz�o Social",
+          "Matr�cula",
+          "Colaborador",
+          "CPF",
+          "Unidade Organizacional",
+          "In�cio do Per�odo Aquisitivo",
+          "Fim do Per�odo Aquisitivo",
+          "Data Limite",
+          "In�cio do Per�odo de Gozo",
+          "Fim do Per�odo de Gozo",
+          "Dias Gozo",
+          "Dias a desconsiderar",
+          "Abono",
+          "Parcela",
+          "1� Parc. 13� Sal�rio",
+          "Retorno",
+          "Data de Pagamento",
+          "Status"
+        ],
+        "colunas_esperadas": [
+          "Matrícula",
+          "Colaborador",
+          "Início do Período de Gozo",
+          "Fim do Período de Gozo",
+          "Status"
+        ],
+        "linhas_puladas": [
+          "\"F�rias de Colaboradores\""
+        ]
+      }
+    },
+    "admitidos": {
+      "tipo_arquivo": "admitidos",
+      "nome_original": "base_admitidos_mes_202511.csv",
+      "hash_md5": "7a205273",
+      "tamanho_bytes": 18826,
+      "data_upload": "2025-12-10T23:25:57.967Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Matrícula",
+            "aliases": [
+              "Matrcula",
+              "matricula",
+              "matrcula"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Colaborador",
+            "aliases": [
+              "colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Data Admissão",
+            "aliases": [
+              "Data Admisso",
+              "data admissao",
+              "data admisso"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Estabelecimento",
+            "aliases": [
+              "estabelecimento"
+            ],
+            "type": "string",
+            "required": false
+          },
+          {
+            "name": "Cargo",
+            "aliases": [
+              "cargo"
+            ],
+            "type": "string",
+            "required": false
+          }
+        ],
+        "separator": ";",
+        "skipLines": 1
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          },
+          {
+            "type": "INFO",
+            "message": "1 linha(s) de cabeçalho pulada(s)",
+            "details": "\"Admitidos\""
+          }
+        ],
+        "campos": {
+          "Matrícula": {
+            "total": 61,
+            "valid": 61,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Colaborador": {
+            "total": 61,
+            "valid": 61,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Data Admissão": {
+            "total": 61,
+            "valid": 61,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Estabelecimento": {
+            "total": 61,
+            "valid": 61,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Cargo": {
+            "total": 61,
+            "valid": 61,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 61,
+        "total_colunas": 16,
+        "colunas_detectadas": [
+          "Empresa",
+          "Raz�o Social",
+          "C�digo Estabelecimento",
+          "Estabelecimento",
+          "Matr�cula",
+          "Colaborador",
+          "Data Admiss�o",
+          "N�mero do Processo Seletivo",
+          "C�digo Centro de Custo",
+          "Centro de Custo",
+          "C�digo Cargo",
+          "Cargo",
+          "C�digo Categoria",
+          "Categoria",
+          "Tipo de Sal�rio",
+          "Sal�rio Atual"
+        ],
+        "colunas_esperadas": [
+          "Matrícula",
+          "Colaborador",
+          "Data Admissão",
+          "Estabelecimento",
+          "Cargo"
+        ],
+        "linhas_puladas": [
+          "\"Admitidos\""
+        ]
+      }
+    },
+    "demitidos": {
+      "tipo_arquivo": "demitidos",
+      "nome_original": "base_demitidos_mes_202511.csv",
+      "hash_md5": "6c109133",
+      "tamanho_bytes": 35532,
+      "data_upload": "2025-12-10T23:26:05.404Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Matrícula",
+            "aliases": [
+              "Matrcula",
+              "matricula",
+              "matrcula"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Colaborador",
+            "aliases": [
+              "colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Data Admissão",
+            "aliases": [
+              "Data Admisso",
+              "data admissao",
+              "data admisso"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Data Rescisão",
+            "aliases": [
+              "Data Resciso",
+              "data rescisao",
+              "data resciso"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Tipo de Rescisão",
+            "aliases": [
+              "Tipo de Resciso",
+              "tipo de rescisao",
+              "tipo de resciso"
+            ],
+            "type": "string",
+            "required": false
+          }
+        ],
+        "separator": ";",
+        "skipLines": 0
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          },
+          {
+            "type": "WARNING",
+            "field": "Matrícula",
+            "message": "Campo \"Matrícula\" tem 2 valor(es) inválido(s)",
+            "details": "2 registros com problemas em 49 total"
+          },
+          {
+            "type": "WARNING",
+            "field": "Colaborador",
+            "message": "Campo \"Colaborador\" tem 2 valor(es) inválido(s)",
+            "details": "2 registros com problemas em 49 total"
+          }
+        ],
+        "campos": {
+          "Matrícula": {
+            "total": 49,
+            "valid": 47,
+            "invalid": 0,
+            "null": 2,
+            "errors": [
+              "Linha 16: campo vazio",
+              "Linha 49: campo vazio"
+            ],
+            "moreErrors": 0
+          },
+          "Colaborador": {
+            "total": 49,
+            "valid": 47,
+            "invalid": 0,
+            "null": 2,
+            "errors": [
+              "Linha 16: campo vazio",
+              "Linha 49: campo vazio"
+            ],
+            "moreErrors": 0
+          },
+          "Data Admissão": {
+            "total": 49,
+            "valid": 42,
+            "invalid": 5,
+            "null": 2,
+            "errors": [
+              "Linha 16: campo vazio",
+              "Linha 17: \"051.401.557-88\" não é uma data válida",
+              "Linha 25: \"067.860.413-45\" não é uma data válida"
+            ],
+            "moreErrors": 2
+          },
+          "Data Rescisão": {
+            "total": 49,
+            "valid": 42,
+            "invalid": 5,
+            "null": 2,
+            "errors": [
+              "Linha 16: campo vazio",
+              "Linha 17: \"Feminino\" não é uma data válida",
+              "Linha 25: \"Feminino\" não é uma data válida"
+            ],
+            "moreErrors": 2
+          },
+          "Tipo de Rescisão": {
+            "total": 49,
+            "valid": 47,
+            "invalid": 0,
+            "null": 2,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 49,
+        "total_colunas": 40,
+        "colunas_detectadas": [
+          "Empresa",
+          "Raz�o Social",
+          "C�digo Estabelecimento",
+          "Estabelecimento",
+          "CNPJ",
+          "Matr�cula",
+          "Colaborador",
+          "N�mero do PIS",
+          "UF",
+          "C�digo Cargo",
+          "Cargo",
+          "Sal�rio",
+          "Data Admiss�o",
+          "Data Rescis�o",
+          "Tipo de Rescis�o",
+          "Motivo do Desligamento",
+          "Justificativa do Desligamento - AutoAtendimento",
+          "Data do Aviso Pr�vio",
+          "Proje��o do Aviso Pr�vio",
+          "C�digo Posi��o",
+          "Posi��o",
+          "C�digo Centro de Custo",
+          "Centro de Custo",
+          "C�digo Unidade Organizacional",
+          "Unidade Organizacional",
+          "C�digo Natureza Profissional",
+          "Natureza Profissional",
+          "Situa��o",
+          "CPF",
+          "Sexo",
+          "Data Nascimento",
+          "Escolaridade",
+          "Ra�a/Cor",
+          "C�digo V�nculo",
+          "V�nculo",
+          "C�digo da Categoria",
+          "Categoria",
+          "PCD",
+          "Matr�cula do Gestor",
+          "Nome do Gestor"
+        ],
+        "colunas_esperadas": [
+          "Matrícula",
+          "Colaborador",
+          "Data Admissão",
+          "Data Rescisão",
+          "Tipo de Rescisão"
+        ],
+        "linhas_puladas": []
+      }
+    },
+    "licenciados": {
+      "tipo_arquivo": "licenciados",
+      "nome_original": "base_licenciados_mes.csv",
+      "hash_md5": "584c0408",
+      "tamanho_bytes": 1533680,
+      "data_upload": "2025-12-10T23:26:16.563Z",
+      "schema": {
+        "fields": [
+          {
+            "name": "Matrícula",
+            "aliases": [
+              "Matrcula",
+              "matricula",
+              "matrcula"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Colaborador",
+            "aliases": [
+              "colaborador"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Início Afastamento",
+            "aliases": [
+              "Incio Afastamento",
+              "inicio afastamento",
+              "incio afastamento"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Término Afastamento",
+            "aliases": [
+              "Trmino Afastamento",
+              "termino afastamento",
+              "trmino afastamento"
+            ],
+            "type": "date",
+            "required": true
+          },
+          {
+            "name": "Tipo Afastamento",
+            "aliases": [
+              "tipo afastamento"
+            ],
+            "type": "string",
+            "required": true
+          },
+          {
+            "name": "Status Afastamento",
+            "aliases": [
+              "status afastamento"
+            ],
+            "type": "string",
+            "required": false
+          }
+        ],
+        "separator": ";",
+        "skipLines": 0
+      },
+      "validacao": {
+        "status": "OK",
+        "erros": [],
+        "avisos": [
+          {
+            "type": "INFO",
+            "message": "Encoding processado automaticamente",
+            "details": "Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso."
+          }
+        ],
+        "campos": {
+          "Matrícula": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Colaborador": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Início Afastamento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Término Afastamento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Tipo Afastamento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          },
+          "Status Afastamento": {
+            "total": 100,
+            "valid": 100,
+            "invalid": 0,
+            "null": 0,
+            "errors": [],
+            "moreErrors": 0
+          }
+        }
+      },
+      "estrutura": {
+        "total_linhas": 3139,
+        "total_colunas": 27,
+        "colunas_detectadas": [
+          "C�digo Empresa",
+          "Empresa",
+          "C�digo Estabelecimento",
+          "Estabelecimento",
+          "Matr�cula",
+          "Colaborador",
+          "Admiss�o",
+          "C�digo Centro de Custo",
+          "Centro de Custo",
+          "C�digo do Cargo",
+          "Cargo",
+          "In�cio Afastamento",
+          "T�rmino Afastamento",
+          "Dias Afastamento",
+          "Status Afastamento",
+          "Tipo Afastamento",
+          "Motivo Afastamento",
+          "CID Afastamento",
+          "Benef�cio de aux�lio-doen�a concedido pela Previd�ncia",
+          "Observa��o",
+          "In�cio Atestado",
+          "T�rmino Atestado",
+          "CID Atestado",
+          "Dias Atestado",
+          "Nome do Emitente",
+          "�rg�o Emissor",
+          "Inscri��o �rg�o de Classe"
+        ],
+        "colunas_esperadas": [
+          "Matrícula",
+          "Colaborador",
+          "Início Afastamento",
+          "Término Afastamento",
+          "Tipo Afastamento",
+          "Status Afastamento"
+        ],
+        "linhas_puladas": []
+      }
+    }
+  }
+}

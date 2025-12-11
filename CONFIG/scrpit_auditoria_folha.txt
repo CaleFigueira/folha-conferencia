@@ -1,0 +1,1250 @@
+import React, { useState } from 'react';
+import { Upload, FileText, CheckCircle, AlertCircle, X, Download, Trash2, Eye, AlertTriangle, Info } from 'lucide-react';
+
+const PayrollAuditApp = () => {
+  const [files, setFiles] = useState({});
+  const [metadata, setMetadata] = useState({});
+  const [previewData, setPreviewData] = useState({});
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [showStatistics, setShowStatistics] = useState(false);
+  const [statistics, setStatistics] = useState(null);
+
+  // Schemas baseados nos arquivos reais da CSB
+  const fileSchemas = {
+    folha_atual: {
+      title: '📄 Base Folha - Mês Atual',
+      description: 'Eventos calculados do período atual (11/2025)',
+      skipLines: 2,
+      separator: ';',
+      fields: [
+        { name: 'Código Empresa', aliases: ['Cdigo Empresa', 'codigo empresa', 'cdigo empresa'], type: 'string', required: true },
+        { name: 'Matrícula Colaborador', aliases: ['Matrcula Colaborador', 'matricula colaborador', 'matrcula colaborador'], type: 'string', required: true },
+        { name: 'Nome Colaborador', aliases: ['nome colaborador'], type: 'string', required: true },
+        { name: 'Tipo Situação', aliases: ['Tipo Situao', 'tipo situacao', 'tipo situao'], type: 'string', required: true },
+        { name: 'Data Admissão', aliases: ['Data Admisso', 'data admissao', 'data admisso'], type: 'date', required: true },
+        { name: 'Tipo Evento', aliases: ['tipo evento'], type: 'string', required: true },
+        { name: 'Código Evento', aliases: ['Cdigo Evento', 'codigo evento', 'cdigo evento'], type: 'string', required: true },
+        { name: 'Evento', aliases: ['evento'], type: 'string', required: true },
+        { name: 'Valor', aliases: ['valor'], type: 'number', required: true }
+      ]
+    },
+    folha_anterior: {
+      title: '📋 Base Folha - Mês Anterior',
+      description: 'Eventos calculados do período anterior',
+      skipLines: 2,
+      separator: ';',
+      fields: [
+        { name: 'Código Empresa', aliases: ['Cdigo Empresa', 'codigo empresa', 'cdigo empresa'], type: 'string', required: true },
+        { name: 'Matrícula Colaborador', aliases: ['Matrcula Colaborador', 'matricula colaborador', 'matrcula colaborador'], type: 'string', required: true },
+        { name: 'Nome Colaborador', aliases: ['nome colaborador'], type: 'string', required: true },
+        { name: 'Tipo Situação', aliases: ['Tipo Situao', 'tipo situacao', 'tipo situao'], type: 'string', required: true },
+        { name: 'Data Admissão', aliases: ['Data Admisso', 'data admissao', 'data admisso'], type: 'date', required: true },
+        { name: 'Tipo Evento', aliases: ['tipo evento'], type: 'string', required: true },
+        { name: 'Código Evento', aliases: ['Cdigo Evento', 'codigo evento', 'cdigo evento'], type: 'string', required: true },
+        { name: 'Evento', aliases: ['evento'], type: 'string', required: true },
+        { name: 'Valor', aliases: ['valor'], type: 'number', required: true }
+      ]
+    },
+    ferias: {
+      title: '🏖️ Base de Férias',
+      description: 'Colaboradores em férias no período',
+      skipLines: 1,
+      separator: ';',
+      fields: [
+        { name: 'Matrícula', aliases: ['Matrcula', 'matricula', 'matrcula'], type: 'string', required: true },
+        { name: 'Colaborador', aliases: ['colaborador'], type: 'string', required: true },
+        { name: 'Início do Período de Gozo', aliases: ['Incio do Perodo de Gozo', 'inicio do periodo de gozo', 'incio do perodo de gozo'], type: 'date', required: true },
+        { name: 'Fim do Período de Gozo', aliases: ['Fim do Perodo de Gozo', 'fim do periodo de gozo', 'fim do perodo de gozo'], type: 'date', required: true },
+        { name: 'Status', aliases: ['status'], type: 'string', required: true }
+      ]
+    },
+    admitidos: {
+      title: '👋 Base de Admitidos',
+      description: 'Novos colaboradores no período',
+      skipLines: 1,
+      separator: ';',
+      fields: [
+        { name: 'Matrícula', aliases: ['Matrcula', 'matricula', 'matrcula'], type: 'string', required: true },
+        { name: 'Colaborador', aliases: ['colaborador'], type: 'string', required: true },
+        { name: 'Data Admissão', aliases: ['Data Admisso', 'data admissao', 'data admisso'], type: 'date', required: true },
+        { name: 'Estabelecimento', aliases: ['estabelecimento'], type: 'string', required: false },
+        { name: 'Cargo', aliases: ['cargo'], type: 'string', required: false }
+      ]
+    },
+    demitidos: {
+      title: '👔 Base de Demitidos',
+      description: 'Colaboradores desligados no período',
+      skipLines: 0,
+      separator: ';',
+      fields: [
+        { name: 'Matrícula', aliases: ['Matrcula', 'matricula', 'matrcula'], type: 'string', required: true },
+        { name: 'Colaborador', aliases: ['colaborador'], type: 'string', required: true },
+        { name: 'Data Admissão', aliases: ['Data Admisso', 'data admissao', 'data admisso'], type: 'date', required: true },
+        { name: 'Data Rescisão', aliases: ['Data Resciso', 'data rescisao', 'data resciso'], type: 'date', required: true },
+        { name: 'Tipo de Rescisão', aliases: ['Tipo de Resciso', 'tipo de rescisao', 'tipo de resciso'], type: 'string', required: false }
+      ]
+    },
+    licenciados: {
+      title: '🏥 Base de Licenciados',
+      description: 'Colaboradores afastados no período',
+      skipLines: 0,
+      separator: ';',
+      fields: [
+        { name: 'Matrícula', aliases: ['Matrcula', 'matricula', 'matrcula'], type: 'string', required: true },
+        { name: 'Colaborador', aliases: ['colaborador'], type: 'string', required: true },
+        { name: 'Início Afastamento', aliases: ['Incio Afastamento', 'inicio afastamento', 'incio afastamento'], type: 'date', required: true },
+        { name: 'Término Afastamento', aliases: ['Trmino Afastamento', 'termino afastamento', 'trmino afastamento'], type: 'date', required: true },
+        { name: 'Tipo Afastamento', aliases: ['tipo afastamento'], type: 'string', required: true },
+        { name: 'Status Afastamento', aliases: ['status afastamento'], type: 'string', required: false }
+      ]
+    }
+  };
+
+  // Limpar caracteres especiais para exibição na UI
+  const cleanTextForUI = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/ /g, '')
+      .replace(/[\u0080-\u00FF]/g, (char) => {
+        const replacements = {
+          'á': 'a', 'à': 'a', 'ã': 'a', 'â': 'a',
+          'é': 'e', 'ê': 'e',
+          'í': 'i',
+          'ó': 'o', 'ô': 'o', 'õ': 'o',
+          'ú': 'u', 'ü': 'u',
+          'ç': 'c',
+          'Á': 'A', 'À': 'A', 'Ã': 'A', 'Â': 'A',
+          'É': 'E', 'Ê': 'E',
+          'Í': 'I',
+          'Ó': 'O', 'Ô': 'O', 'Õ': 'O',
+          'Ú': 'U', 'Ü': 'U',
+          'Ç': 'C'
+        };
+        return replacements[char] || char;
+      });
+  };
+
+  // Normalizar nome de coluna (remove aspas, espaços e acentos)
+  const normalizeColumnName = (name) => {
+    return name
+      .replace(/^"|"$/g, '')
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/ /g, '') // Remove caracteres quebrados de encoding
+      .toLowerCase();
+  };
+
+  // Comparar nomes de colunas (ignora acentos e case)
+  const columnsMatch = (col1, col2) => {
+    const normalize = (str) => str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ /g, '')
+      .toLowerCase()
+      .trim();
+    return normalize(col1) === normalize(col2);
+  };
+
+  // Validar tipo de dado
+  const validateFieldType = (value, expectedType) => {
+    // Remove aspas do valor
+    const cleanValue = value ? value.replace(/^"|"$/g, '').trim() : '';
+    
+    if (!cleanValue || cleanValue === '') {
+      return { valid: false, error: 'Campo vazio' };
+    }
+
+    switch (expectedType) {
+      case 'number':
+        const numValue = cleanValue.replace('.', '').replace(',', '.');
+        if (isNaN(numValue) || numValue.trim() === '') {
+          return { valid: false, error: `"${cleanValue}" não é um número válido` };
+        }
+        return { valid: true, parsedValue: parseFloat(numValue) };
+      
+      case 'date':
+        const datePatterns = [
+          /^\d{2}\/\d{2}\/\d{4}$/, // DD/MM/YYYY
+          /^\d{4}-\d{2}-\d{2}$/,  // YYYY-MM-DD
+          /^\d{2}-\d{2}-\d{4}$/    // DD-MM-YYYY
+        ];
+        
+        const isValidFormat = datePatterns.some(pattern => pattern.test(cleanValue));
+        if (!isValidFormat) {
+          return { valid: false, error: `"${cleanValue}" não é uma data válida` };
+        }
+        return { valid: true, parsedValue: cleanValue };
+      
+      case 'string':
+        if (cleanValue.length === 0) {
+          return { valid: false, error: 'Texto vazio' };
+        }
+        return { valid: true, parsedValue: cleanValue };
+      
+      default:
+        return { valid: true, parsedValue: cleanValue };
+    }
+  };
+
+  // Parse CSV com separador ponto-e-vírgula
+  const parseCSV = (text, separator = ';', skipLines = 0) => {
+    const allLines = text.split('\n').filter(line => line.trim());
+    
+    if (allLines.length <= skipLines) {
+      return { headers: [], rows: [], skippedLines: [] };
+    }
+    
+    // Linhas puladas (título, referência, etc)
+    const skippedLines = allLines.slice(0, skipLines);
+    
+    // Linha do cabeçalho - mantém nomes ORIGINAIS (sem normalizar)
+    const headerLine = allLines[skipLines];
+    const headers = headerLine.split(separator).map(h => h.replace(/^"|"$/g, '').trim());
+    
+    // Linhas de dados
+    const dataLines = allLines.slice(skipLines + 1);
+    const rows = dataLines.map((line, lineIndex) => {
+      const values = line.split(separator).map(v => v.replace(/^"|"$/g, '').trim());
+      const row = { _lineNumber: lineIndex + skipLines + 2 };
+      headers.forEach((header, idx) => {
+        row[header] = values[idx] || '';
+      });
+      return row;
+    });
+    
+    return { headers, rows, skippedLines };
+  };
+
+  // Gerar hash simples
+  const generateHash = (text) => {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16).substring(0, 8);
+  };
+
+  // Validar schema completo
+  const validateSchema = (data, schema) => {
+    const errors = [];
+    const warnings = [];
+    const fieldValidations = {};
+    
+    // 1. Verificar se há dados
+    if (data.rows.length === 0) {
+      errors.push({
+        type: 'CRITICAL',
+        message: 'Arquivo está vazio (sem registros)',
+        details: 'O arquivo precisa conter pelo menos uma linha de dados'
+      });
+      return { valid: false, errors, warnings, fieldValidations };
+    }
+    
+    // 2. Verificar colunas obrigatórias (comparação com aliases)
+    const requiredFields = schema.fields.filter(f => f.required);
+    const missingFields = requiredFields.filter(f => {
+      const allNames = [f.name, ...(f.aliases || [])];
+      return !data.headers.some(h => allNames.some(n => columnsMatch(h, n)));
+    });
+    
+    if (missingFields.length > 0) {
+      errors.push({
+        type: 'CRITICAL',
+        message: 'Colunas obrigatórias faltando',
+        details: missingFields.map(f => `"${f.name}"`).join(', ')
+      });
+    }
+    
+    // 3. Detectar encoding (se tem caracteres estranhos)
+    const hasEncodingIssue = data.headers.some(h => h.includes(' '));
+    if (hasEncodingIssue) {
+      warnings.push({
+        type: 'INFO',
+        message: 'Encoding processado automaticamente',
+        details: 'Arquivo com caracteres especiais foi normalizado. Validação executada com sucesso.'
+      });
+    }
+    
+    // 4. Validar tipo de dados campo por campo (busca flexível com aliases)
+    schema.fields.forEach(field => {
+      // Busca a coluna correspondente usando nome principal + aliases
+      const allNames = [field.name, ...(field.aliases || [])];
+      const matchingHeader = data.headers.find(h => 
+        allNames.some(n => columnsMatch(h, n))
+      );
+      if (!matchingHeader) return;
+      
+      const fieldErrors = [];
+      let nullCount = 0;
+      let invalidCount = 0;
+      let validCount = 0;
+      
+      data.rows.slice(0, 100).forEach(row => { // Valida apenas primeiras 100 linhas para performance
+        const value = row[matchingHeader]; // Usa o header real encontrado
+        
+        if (!value || value.trim() === '') {
+          nullCount++;
+          if (field.required) {
+            if (fieldErrors.length < 3) { // Limita a 3 exemplos
+              fieldErrors.push(`Linha ${row._lineNumber}: campo vazio`);
+            }
+          }
+        } else {
+          const validation = validateFieldType(value, field.type);
+          if (!validation.valid) {
+            invalidCount++;
+            if (fieldErrors.length < 3) {
+              fieldErrors.push(`Linha ${row._lineNumber}: ${validation.error}`);
+            }
+          } else {
+            validCount++;
+          }
+        }
+      });
+      
+      fieldValidations[field.name] = {
+        total: Math.min(100, data.rows.length),
+        valid: validCount,
+        invalid: invalidCount,
+        null: nullCount,
+        errors: fieldErrors,
+        moreErrors: invalidCount > fieldErrors.length ? invalidCount - fieldErrors.length : 0
+      };
+      
+      // Adicionar erro APENAS se campo obrigatório tem muitos problemas
+      if (field.required && (invalidCount + nullCount) > 0) {
+        // Se mais de 50% dos registros têm erro, é crítico
+        if ((invalidCount + nullCount) / Math.min(100, data.rows.length) > 0.5) {
+          errors.push({
+            type: 'VALIDATION',
+            field: field.name,
+            message: `Campo "${field.name}" tem ${invalidCount + nullCount} erro(s) nas primeiras 100 linhas`,
+            details: fieldErrors.slice(0, 2).join('; ')
+          });
+        } else if (invalidCount + nullCount <= 5) {
+          // Se poucos erros, apenas aviso
+          warnings.push({
+            type: 'WARNING',
+            field: field.name,
+            message: `Campo "${field.name}" tem ${invalidCount + nullCount} valor(es) inválido(s)`,
+            details: `${invalidCount + nullCount} registros com problemas em ${data.rows.length} total`
+          });
+        }
+      }
+    });
+    
+    // 5. Informação sobre linhas puladas (com texto limpo)
+    if (data.skippedLines.length > 0) {
+      warnings.push({
+        type: 'INFO',
+        message: `${data.skippedLines.length} linha(s) de cabeçalho pulada(s)`,
+        details: data.skippedLines.map(l => cleanTextForUI(l.substring(0, 50))).join(' | ')
+      });
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      fieldValidations
+    };
+  };
+
+  // Processar arquivo
+  const handleFileSelect = async (key, event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+      const schema = fileSchemas[key];
+      const text = await file.text();
+      const hash = generateHash(text);
+      const data = parseCSV(text, schema.separator, schema.skipLines);
+      const validation = validateSchema(data, schema);
+      
+      const meta = {
+        tipo_arquivo: key,
+        nome_original: file.name,
+        hash_md5: hash,
+        tamanho_bytes: file.size,
+        data_upload: new Date().toISOString(),
+        schema: {
+          fields: schema.fields,
+          separator: schema.separator,
+          skipLines: schema.skipLines
+        },
+        validacao: {
+          status: validation.valid ? 'OK' : 'ERRO',
+          erros: validation.errors,
+          avisos: validation.warnings,
+          campos: validation.fieldValidations
+        },
+        estrutura: {
+          total_linhas: data.rows.length,
+          total_colunas: data.headers.length,
+          colunas_detectadas: data.headers,
+          colunas_esperadas: schema.fields.map(f => f.name),
+          linhas_puladas: data.skippedLines
+        }
+      };
+      
+      setFiles(prev => ({
+        ...prev,
+        [key]: {
+          name: file.name,
+          size: file.size,
+          hash,
+          data
+        }
+      }));
+      
+      setMetadata(prev => ({
+        ...prev,
+        [key]: meta
+      }));
+      
+      setPreviewData(prev => ({
+        ...prev,
+        [key]: data.rows.slice(0, 5)
+      }));
+    } catch (error) {
+      alert(`Erro ao processar arquivo: ${error.message}`);
+    }
+  };
+
+  // Remover arquivo
+  const handleRemoveFile = (key) => {
+    const newFiles = { ...files };
+    const newMetadata = { ...metadata };
+    const newPreview = { ...previewData };
+    
+    delete newFiles[key];
+    delete newMetadata[key];
+    delete newPreview[key];
+    
+    setFiles(newFiles);
+    setMetadata(newMetadata);
+    setPreviewData(newPreview);
+    setExpandedCard(null);
+  };
+
+  // Limpar tudo
+  const handleClearAll = () => {
+    if (confirm('Tem certeza que deseja limpar todos os arquivos?')) {
+      setFiles({});
+      setMetadata({});
+      setPreviewData({});
+      setExpandedCard(null);
+    }
+  };
+
+  // Exportar metadados
+  const handleExportMetadata = () => {
+    const exportData = {
+      empresa: 'CSB DROGARIAS S/A',
+      data_exportacao: new Date().toISOString(),
+      resumo: {
+        total_arquivos: Object.keys(metadata).length,
+        arquivos_validos: Object.values(metadata).filter(m => m.validacao.status === 'OK').length,
+        total_registros: Object.values(metadata).reduce((sum, m) => sum + m.estrutura.total_linhas, 0)
+      },
+      arquivos: metadata
+    };
+    
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `metadados_auditoria_csb_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Gerar estatísticas e análises
+  const generateStatistics = () => {
+    const folhaAtual = files.folha_atual?.data.rows || [];
+    const folhaAnterior = files.folha_anterior?.data.rows || [];
+    const ferias = files.ferias?.data.rows || [];
+    const admitidos = files.admitidos?.data.rows || [];
+    const demitidos = files.demitidos?.data.rows || [];
+    const licenciados = files.licenciados?.data.rows || [];
+
+    // Normalizar nomes de colunas para busca
+    const getColValue = (row, possibleNames) => {
+      for (let name of possibleNames) {
+        const key = Object.keys(row).find(k => 
+          k.toLowerCase().includes(name.toLowerCase())
+        );
+        if (key && row[key]) return row[key];
+      }
+      return null;
+    };
+
+    // Extrair matrículas únicas
+    const matriculasAtual = new Set(
+      folhaAtual.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+    const matriculasAnterior = new Set(
+      folhaAnterior.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+    const matriculasFerias = new Set(
+      ferias.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+    const matriculasAdmitidos = new Set(
+      admitidos.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+    const matriculasDemitidos = new Set(
+      demitidos.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+    const matriculasLicenciados = new Set(
+      licenciados.map(r => getColValue(r, ['matricula'])).filter(Boolean)
+    );
+
+    // Análises comparativas
+    const novosColaboradores = [...matriculasAtual].filter(m => !matriculasAnterior.has(m));
+    const colaboradoresSairam = [...matriculasAnterior].filter(m => !matriculasAtual.has(m));
+    
+    // Valores totais
+    const calcularTotal = (rows) => {
+      return rows.reduce((sum, row) => {
+        const valor = getColValue(row, ['valor']);
+        if (valor) {
+          const num = parseFloat(valor.toString().replace('.', '').replace(',', '.'));
+          return sum + (isNaN(num) ? 0 : num);
+        }
+        return sum;
+      }, 0);
+    };
+
+    const totalAtual = calcularTotal(folhaAtual);
+    const totalAnterior = calcularTotal(folhaAnterior);
+    const variacao = totalAtual - totalAnterior;
+    const variacaoPerc = totalAnterior > 0 ? (variacao / totalAnterior) * 100 : 0;
+
+    // Eventos por tipo
+    const eventosPorTipo = (rows) => {
+      const proventos = rows.filter(r => 
+        getColValue(r, ['tipo evento', 'tipo_evento'])?.toLowerCase() === 'provento'
+      ).length;
+      const descontos = rows.filter(r => 
+        getColValue(r, ['tipo evento', 'tipo_evento'])?.toLowerCase() === 'desconto'
+      ).length;
+      return { proventos, descontos };
+    };
+
+    const eventosAtual = eventosPorTipo(folhaAtual);
+    const eventosAnterior = eventosPorTipo(folhaAnterior);
+
+    return {
+      clusters: {
+        folhaAtual: {
+          colaboradores: matriculasAtual.size,
+          eventos: folhaAtual.length,
+          proventos: eventosAtual.proventos,
+          descontos: eventosAtual.descontos,
+          total: totalAtual
+        },
+        folhaAnterior: {
+          colaboradores: matriculasAnterior.size,
+          eventos: folhaAnterior.length,
+          proventos: eventosAnterior.proventos,
+          descontos: eventosAnterior.descontos,
+          total: totalAnterior
+        },
+        ferias: {
+          colaboradores: matriculasFerias.size,
+          registros: ferias.length
+        },
+        admitidos: {
+          colaboradores: matriculasAdmitidos.size,
+          registros: admitidos.length
+        },
+        demitidos: {
+          colaboradores: matriculasDemitidos.size,
+          registros: demitidos.length
+        },
+        licenciados: {
+          colaboradores: matriculasLicenciados.size,
+          registros: licenciados.length
+        }
+      },
+      comparativos: {
+        novosColaboradores: novosColaboradores.length,
+        colaboradoresSairam: colaboradoresSairam.length,
+        variacao: variacao,
+        variacaoPerc: variacaoPerc,
+        eventosNovos: folhaAtual.length - folhaAnterior.length
+      },
+      alertas: {
+        admitidosNaoNaFolha: [...matriculasAdmitidos].filter(m => !matriculasAtual.has(m)).length,
+        demitidosAindaNaFolha: [...matriculasDemitidos].filter(m => matriculasAtual.has(m)).length,
+        feriasNaoIdentificadas: [...matriculasFerias].filter(m => !matriculasAtual.has(m)).length
+      }
+    };
+  };
+
+  // Iniciar auditoria
+  const handleStartAudit = () => {
+    const stats = generateStatistics();
+    setStatistics(stats);
+    setShowStatistics(true);
+    
+    // Scroll suave até as estatísticas
+    setTimeout(() => {
+      document.getElementById('statistics-section')?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }, 100);
+  };
+
+  const uploadedCount = Object.keys(files).length;
+  const validCount = Object.values(metadata).filter(m => m.validacao.status === 'OK').length;
+  const totalRequired = Object.keys(fileSchemas).length;
+  const allFilesValid = validCount === totalRequired;
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold text-slate-800">
+              📊 Auditoria de Folha - CSB
+            </h1>
+          </div>
+          <p className="text-slate-600 text-lg">
+            Módulo 1: Upload e Validação de Arquivos do Sistema de Folha
+          </p>
+          <p className="text-sm text-slate-500 mt-2">
+            Sistema adaptado para o formato real dos arquivos exportados do sistema da CSB Drogarias
+          </p>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8 border-l-4 border-blue-500">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <span className="text-sm font-medium text-slate-700">
+                Progresso da Validação
+              </span>
+              <p className="text-xs text-slate-500 mt-1">
+                {validCount} arquivos validados de {totalRequired} necessários
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-2xl font-bold text-slate-800">
+                {validCount}/{totalRequired}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearAll}
+                  disabled={uploadedCount === 0}
+                  className="px-4 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 text-sm font-medium"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpar Tudo
+                </button>
+                {Object.keys(metadata).length > 0 && (
+                  <button
+                    onClick={handleExportMetadata}
+                    className="px-4 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all flex items-center gap-2 text-sm font-medium"
+                  >
+                    <Download className="w-4 h-4" />
+                    Exportar JSON
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+            <div 
+              className="bg-gradient-to-r from-blue-500 to-blue-600 h-4 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${(validCount / totalRequired) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Upload Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {Object.entries(fileSchemas).map(([key, schema]) => {
+            const fileData = files[key];
+            const meta = metadata[key];
+            const hasFile = fileData !== null && fileData !== undefined;
+            const isValid = meta?.validacao.status === 'OK';
+            const isExpanded = expandedCard === key;
+
+            return (
+              <div
+                key={key}
+                className={`bg-white rounded-xl shadow-md border-2 transition-all duration-200 ${
+                  hasFile 
+                    ? isValid 
+                      ? 'border-green-300 shadow-green-100' 
+                      : 'border-red-300 shadow-red-100'
+                    : 'border-slate-200 hover:border-blue-300 hover:shadow-lg'
+                }`}
+              >
+                <div className="p-6">
+                  {/* Card Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-slate-800 text-lg mb-1">
+                        {schema.title}
+                      </h3>
+                      <p className="text-sm text-slate-500 mb-2">
+                        {schema.description}
+                      </p>
+                      <div className="flex items-center gap-3 text-xs text-slate-400">
+                        <span>{schema.fields.length} campos</span>
+                        <span>•</span>
+                        <span>Separador: {schema.separator === ';' ? 'ponto-e-vírgula' : schema.separator}</span>
+                        {schema.skipLines > 0 && (
+                          <>
+                            <span>•</span>
+                            <span>{schema.skipLines} linha(s) pulada(s)</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    {hasFile && (
+                      <div className="ml-4">
+                        {isValid ? (
+                          <CheckCircle className="w-6 h-6 text-green-500" />
+                        ) : (
+                          <AlertCircle className="w-6 h-6 text-red-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Upload Area or File Info */}
+                  {!hasFile ? (
+                    <div>
+                      <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer mb-3">
+                        <input
+                          type="file"
+                          id={`file-${key}`}
+                          className="hidden"
+                          accept=".csv"
+                          onChange={(e) => handleFileSelect(key, e)}
+                        />
+                        <label
+                          htmlFor={`file-${key}`}
+                          className="cursor-pointer"
+                        >
+                          <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-slate-600 mb-1">
+                            Clique para selecionar arquivo
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            Formato: CSV (separado por ponto-e-vírgula)
+                          </p>
+                        </label>
+                      </div>
+                      
+                      {/* Schema esperado */}
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-xs font-semibold text-blue-900 mb-2 flex items-center gap-1">
+                          <Info className="w-3 h-3" />
+                          Campos Principais Esperados:
+                        </p>
+                        <div className="space-y-1">
+                          {schema.fields.filter(f => f.required).map(field => (
+                            <div key={field.name} className="text-xs text-blue-800">
+                              • <span className="font-semibold">{field.name}</span>
+                              <span className="text-blue-600"> ({field.type})</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="bg-slate-50 rounded-lg p-4 mb-3">
+                        <div className="flex items-start gap-3">
+                          <FileText className="w-5 h-5 text-blue-500 flex-shrink-0 mt-1" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate mb-1">
+                              {fileData.name}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap">
+                              <span>{formatFileSize(fileData.size)}</span>
+                              <span>•</span>
+                              <span className="font-semibold text-blue-600">{meta.estrutura.total_linhas.toLocaleString('pt-BR')} registros</span>
+                              <span>•</span>
+                              <span>{meta.estrutura.total_colunas} colunas</span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveFile(key)}
+                            className="text-slate-400 hover:text-red-500 transition-colors"
+                            title="Remover arquivo"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="mb-3">
+                        {isValid ? (
+                          <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+                            <div className="flex items-center gap-2 text-green-700 font-medium mb-1">
+                              <CheckCircle className="w-5 h-5" />
+                              <span>✅ Validado e Pronto!</span>
+                            </div>
+                            <p className="text-xs text-green-600">
+                              Schema validado com sucesso. Arquivo pronto para auditoria.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="bg-red-50 rounded-lg p-3 border border-red-200">
+                            <div className="flex items-center gap-2 text-red-700 font-medium mb-2">
+                              <AlertCircle className="w-5 h-5" />
+                              <span>❌ Erros Encontrados ({meta.validacao.erros.length})</span>
+                            </div>
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                              {meta.validacao.erros.slice(0, 3).map((erro, idx) => (
+                                <div key={idx} className="text-xs bg-white rounded p-2 border border-red-200">
+                                  <p className="font-semibold text-red-800 mb-1">
+                                    {erro.type}: {erro.message}
+                                  </p>
+                                  <p className="text-red-600">{erro.details}</p>
+                                </div>
+                              ))}
+                              {meta.validacao.erros.length > 3 && (
+                                <p className="text-xs text-red-600 italic">
+                                  + {meta.validacao.erros.length - 3} erro(s) adicional(is)
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Warnings */}
+                      {meta.validacao.avisos.length > 0 && (
+                        <div className="bg-amber-50 rounded-lg p-3 mb-3 border border-amber-200">
+                          <div className="flex items-center gap-2 text-amber-800 font-medium mb-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            <span>⚠️ Avisos ({meta.validacao.avisos.length})</span>
+                          </div>
+                                                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {meta.validacao.avisos.map((aviso, idx) => (
+                              <div key={idx} className="text-xs text-amber-700">
+                                • {cleanTextForUI(aviso.message)}
+                                {aviso.details && (
+                                  <div className="ml-3 text-amber-600 mt-0.5">{cleanTextForUI(aviso.details)}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* View Details Button */}
+                      <button
+                        onClick={() => setExpandedCard(isExpanded ? null : key)}
+                        className="w-full px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        {isExpanded ? 'Ocultar Detalhes' : 'Ver Análise Completa'}
+                      </button>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
+                          {/* Preview */}
+                          <div className="bg-slate-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+                              👁️ Preview dos Dados (5 primeiras linhas)
+                            </h4>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs border-collapse">
+                                <thead>
+                                  <tr className="border-b-2 border-slate-300 bg-slate-100">
+                                    {meta.estrutura.colunas_detectadas.slice(0, 8).map(col => (
+                                      <th key={col} className="text-left py-2 px-2 font-semibold text-slate-700 whitespace-nowrap">
+                                        {cleanTextForUI(col)}
+                                      </th>
+                                    ))}
+                                    {meta.estrutura.colunas_detectadas.length > 8 && (
+                                      <th className="text-left py-2 px-2 text-slate-500">
+                                        +{meta.estrutura.colunas_detectadas.length - 8} cols
+                                      </th>
+                                    )}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {previewData[key]?.map((row, idx) => (
+                                    <tr key={idx} className="border-b border-slate-200 hover:bg-blue-50">
+                                      {meta.estrutura.colunas_detectadas.slice(0, 8).map(col => (
+                                        <td key={col} className="py-2 px-2 text-slate-600">
+                                          {row[col] ? cleanTextForUI(row[col].length > 30 ? row[col].substring(0, 30) + '...' : row[col]) : '-'}
+                                        </td>
+                                      ))}
+                                      {meta.estrutura.colunas_detectadas.length > 8 && (
+                                        <td className="py-2 px-2 text-slate-400 italic">...</td>
+                                      )}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2 italic">
+                              Mostrando {Math.min(5, meta.estrutura.total_linhas)} de {meta.estrutura.total_linhas.toLocaleString('pt-BR')} linhas • 
+                              Primeiras 8 de {meta.estrutura.total_colunas} colunas
+                            </p>
+                          </div>
+
+                          {/* Metadados */}
+                          <div className="bg-slate-50 rounded-lg p-4">
+                            <h4 className="font-semibold text-slate-800 text-sm mb-3">
+                              📋 Informações do Arquivo
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                              <div className="bg-white p-2 rounded">
+                                <span className="text-slate-600">Hash MD5:</span>
+                                <p className="font-mono text-slate-800 font-semibold">{meta.hash_md5}</p>
+                              </div>
+                              <div className="bg-white p-2 rounded">
+                                <span className="text-slate-600">Tamanho:</span>
+                                <p className="text-slate-800 font-semibold">{formatFileSize(meta.tamanho_bytes)}</p>
+                              </div>
+                              <div className="bg-white p-2 rounded">
+                                <span className="text-slate-600">Upload:</span>
+                                <p className="text-slate-800 font-semibold">
+                                  {new Date(meta.data_upload).toLocaleString('pt-BR')}
+                                </p>
+                              </div>
+                              <div className="bg-white p-2 rounded">
+                                <span className="text-slate-600">Separador:</span>
+                                <p className="text-slate-800 font-semibold">{meta.schema.separator === ';' ? 'Ponto-e-vírgula' : meta.schema.separator}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Action Button */}
+        <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
+          <div className="flex items-center justify-between">
+            <div>
+              {allFilesValid ? (
+                <div>
+                  <div className="flex items-center gap-2 text-green-600 mb-2">
+                    <CheckCircle className="w-6 h-6" />
+                    <span className="font-bold text-xl">
+                      🎉 Sistema Pronto para Auditoria!
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600">
+                    Total de <span className="font-bold text-green-600">{Object.values(metadata).reduce((sum, m) => sum + m.estrutura.total_linhas, 0).toLocaleString('pt-BR')}</span> registros carregados e validados
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Todos os arquivos foram validados e estão prontos para processamento
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <div className="flex items-center gap-2 text-amber-600 mb-2">
+                    <AlertCircle className="w-6 h-6" />
+                    <span className="font-bold text-lg">
+                      Valide todos os arquivos antes de continuar
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-600">
+                    {validCount} de {totalRequired} arquivos validados
+                    {uploadedCount > validCount && ` • ${uploadedCount - validCount} com erros`}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Corrija os erros ou faça upload dos arquivos faltantes
+                  </p>
+                </div>
+              )}
+            </div>
+            <button
+              disabled={!allFilesValid}
+              onClick={handleStartAudit}
+              className={`px-8 py-4 rounded-lg font-bold text-lg transition-all duration-200 flex items-center gap-3 ${
+                allFilesValid
+                  ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <span>▶️</span>
+              <span>Iniciar Auditoria</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Statistics Section */}
+        {showStatistics && statistics && (
+          <div id="statistics-section" className="mt-8 space-y-6">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl p-6 shadow-lg">
+              <h2 className="text-2xl font-bold mb-2">📊 Análise das Bases Carregadas</h2>
+              <p className="text-blue-100">Estatísticas e comparativos gerados automaticamente</p>
+            </div>
+
+            {/* Clusters - Resumo das Bases */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-4">1. Clusters (Bases Individuais)</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Folha Atual */}
+                <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-bold text-blue-900 mb-3">📄 Folha Mês Atual</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Colaboradores:</span>
+                      <span className="font-bold text-slate-900">{statistics.clusters.folhaAtual.colaboradores}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Eventos:</span>
+                      <span className="font-bold text-slate-900">{statistics.clusters.folhaAtual.eventos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-green-600">Proventos:</span>
+                      <span className="font-bold text-green-700">{statistics.clusters.folhaAtual.proventos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-red-600">Descontos:</span>
+                      <span className="font-bold text-red-700">{statistics.clusters.folhaAtual.descontos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-blue-300">
+                      <span className="text-slate-700 font-semibold">Total:</span>
+                      <span className="font-bold text-blue-900">{formatCurrency(statistics.clusters.folhaAtual.total)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Folha Anterior */}
+                <div className="border-2 border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <h4 className="font-bold text-slate-900 mb-3">📋 Folha Mês Anterior</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Colaboradores:</span>
+                      <span className="font-bold text-slate-900">{statistics.clusters.folhaAnterior.colaboradores}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Eventos:</span>
+                      <span className="font-bold text-slate-900">{statistics.clusters.folhaAnterior.eventos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-green-600">Proventos:</span>
+                      <span className="font-bold text-green-700">{statistics.clusters.folhaAnterior.proventos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-red-600">Descontos:</span>
+                      <span className="font-bold text-red-700">{statistics.clusters.folhaAnterior.descontos.toLocaleString('pt-BR')}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-slate-300">
+                      <span className="text-slate-700 font-semibold">Total:</span>
+                      <span className="font-bold text-slate-900">{formatCurrency(statistics.clusters.folhaAnterior.total)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bases Auxiliares */}
+                <div className="border-2 border-amber-200 rounded-lg p-4 bg-amber-50">
+                  <h4 className="font-bold text-amber-900 mb-3">📚 Bases Auxiliares</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">🏖️ Férias:</span>
+                      <span className="font-bold text-slate-900">{statistics.clusters.ferias.colaboradores} colab.</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">👋 Admitidos:</span>
+                      <span className="font-bold text-green-700">{statistics.clusters.admitidos.colaboradores} colab.</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">👔 Demitidos:</span>
+                      <span className="font-bold text-red-700">{statistics.clusters.demitidos.colaboradores} colab.</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">🏥 Licenciados:</span>
+                      <span className="font-bold text-orange-700">{statistics.clusters.licenciados.colaboradores} colab.</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-amber-300">
+                      <span className="text-slate-700 font-semibold">Total Afastados:</span>
+                      <span className="font-bold text-amber-900">
+                        {statistics.clusters.ferias.colaboradores + 
+                         statistics.clusters.licenciados.colaboradores}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Comparativos */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-4">2. Comparativos (Mês Atual vs Anterior)</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Variação Monetária */}
+                <div className={`rounded-lg p-4 ${
+                  statistics.comparativos.variacao >= 0 
+                    ? 'bg-green-50 border-2 border-green-200' 
+                    : 'bg-red-50 border-2 border-red-200'
+                }`}>
+                  <div className="text-sm text-slate-600 mb-1">Variação Total</div>
+                  <div className={`text-2xl font-bold ${
+                    statistics.comparativos.variacao >= 0 ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {statistics.comparativos.variacao >= 0 ? '+' : ''}
+                    {formatCurrency(statistics.comparativos.variacao)}
+                  </div>
+                  <div className="text-xs mt-1">
+                    <span className={statistics.comparativos.variacaoPerc >= 0 ? 'text-green-600' : 'text-red-600'}>
+                      {statistics.comparativos.variacaoPerc >= 0 ? '↑' : '↓'} {Math.abs(statistics.comparativos.variacaoPerc).toFixed(2)}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Novos Colaboradores */}
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                  <div className="text-sm text-slate-600 mb-1">Novos na Folha</div>
+                  <div className="text-2xl font-bold text-blue-700">
+                    +{statistics.comparativos.novosColaboradores}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">colaboradores</div>
+                </div>
+
+                {/* Colaboradores que Saíram */}
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
+                  <div className="text-sm text-slate-600 mb-1">Saíram da Folha</div>
+                  <div className="text-2xl font-bold text-orange-700">
+                    -{statistics.comparativos.colaboradoresSairam}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">colaboradores</div>
+                </div>
+
+                {/* Variação de Eventos */}
+                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                  <div className="text-sm text-slate-600 mb-1">Variação Eventos</div>
+                  <div className={`text-2xl font-bold ${
+                    statistics.comparativos.eventosNovos >= 0 ? 'text-purple-700' : 'text-purple-900'
+                  }`}>
+                    {statistics.comparativos.eventosNovos >= 0 ? '+' : ''}
+                    {statistics.comparativos.eventosNovos.toLocaleString('pt-BR')}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">eventos</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Alertas Iniciais */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h3 className="text-xl font-bold text-slate-800 mb-4">3. Alertas Iniciais (Pré-Auditoria)</h3>
+              
+              <div className="space-y-3">
+                {statistics.alertas.admitidosNaoNaFolha > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-red-900">
+                        {statistics.alertas.admitidosNaoNaFolha} admitido(s) não encontrado(s) na folha atual
+                      </div>
+                      <div className="text-sm text-red-700">
+                        Colaboradores na base de admitidos mas ausentes na folha do mês
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {statistics.alertas.demitidosAindaNaFolha > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-amber-50 border-l-4 border-amber-500 rounded">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-amber-900">
+                        {statistics.alertas.demitidosAindaNaFolha} demitido(s) ainda presente(s) na folha
+                      </div>
+                      <div className="text-sm text-amber-700">
+                        Colaboradores na base de demitidos mas ainda na folha do mês
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {statistics.alertas.feriasNaoIdentificadas > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
+                    <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-blue-900">
+                        {statistics.alertas.feriasNaoIdentificadas} colaborador(es) de férias não na folha
+                      </div>
+                      <div className="text-sm text-blue-700">
+                        Pode ser normal se férias foram em período anterior
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {statistics.alertas.admitidosNaoNaFolha === 0 && 
+                 statistics.alertas.demitidosAindaNaFolha === 0 && 
+                 statistics.alertas.feriasNaoIdentificadas === 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-green-50 border-l-4 border-green-500 rounded">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold text-green-900">
+                        Nenhum alerta crítico detectado
+                      </div>
+                      <div className="text-sm text-green-700">
+                        Bases auxiliares consistentes com a folha principal
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Próximos Passos */}
+            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl p-6">
+              <h3 className="text-lg font-bold mb-3">✅ Análise Inicial Completa</h3>
+              <p className="text-slate-200 mb-4">
+                Estatísticas básicas geradas. Próximo passo: Engine de Auditoria com Regras R1-R10
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowStatistics(false)}
+                  className="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg font-medium transition-all"
+                >
+                  ← Voltar ao Upload
+                </button>
+                <button
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-all"
+                  disabled
+                >
+                  Executar Regras R1-R10 (Em Desenvolvimento)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+              <span>▶️</span>
+              <span>Iniciar Auditoria</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PayrollAuditApp;

@@ -59,55 +59,105 @@
           },
           
           normalizarMatricula: (row) => {
-            return AuditEngine.buscarCampoEspacos(row, ['matricula colaborador', 'matricula', 'matr']);
+            const resultado = AuditEngine.buscarCampoEspacos(row, [
+              'matricula colaborador', 
+              'matrícula colaborador',
+              'matricula', 
+              'matrícula',
+              'mat',
+              'matr',
+              'mat col'
+            ]);
+            return resultado;
           },
           
           extrairValor: (row) => {
-            const valorStr = AuditEngine.buscarCampoEspacos(row, ['valor']);
+            const valorStr = AuditEngine.buscarCampoEspacos(row, [
+              'valor',
+              'valor mensal',
+              'valor calculado',
+              'val',
+              'amount'
+            ]);
             if (!valorStr) return 0;
             const val = valorStr.replace(/\./g, '').replace(',', '.');
             return parseFloat(val) || 0;
           },
           
           extrairCodigoEvento: (row) => {
-            // Tenta com ESPAÇO primeiro (mais específico)
             const resultado = AuditEngine.buscarCampoEspacos(row, [
               'codigo evento',
+              'código evento',
               'codigoevento',
+              'código',
               'cod evento', 
-              'codev'
+              'cod',
+              'codev',
+              'event code',
+              'código rubrica',
+              'código rúbrica'
             ]);
             return resultado;
           },
           
           extrairNomeColaborador: (row) => {
-            return AuditEngine.buscarCampoEspacos(row, ['nome colaborador', 'colaborador', 'nome']);
+            return AuditEngine.buscarCampoEspacos(row, [
+              'nome colaborador',
+              'nome do colaborador', 
+              'colaborador',
+              'nome',
+              'employee name',
+              'funcionário'
+            ]);
           },
           
           criarIndiceEventos: (folha, label) => {
             console.log(`\n🔧 ${label}...`);
             
-            if (folha.length > 0) {
-              const colunas = Object.keys(folha[0]).filter(k => k !== '_lineNumber');
-              console.log(`   📋 ${colunas.length} colunas: ${colunas.slice(0, 5).join(', ')}...`);
+            if (folha.length === 0) {
+              console.log(`   ⚠️  Folha vazia!`);
+              return {};
+            }
+            
+            const colunas = Object.keys(folha[0]).filter(k => k !== '_lineNumber');
+            console.log(`   📋 ${colunas.length} colunas detectadas`);
+            
+            // Log todas as colunas para debug
+            if (colunas.length <= 20) {
+              console.log(`   📌 Colunas: [${colunas.join(' | ')}]`);
+            } else {
+              console.log(`   📌 Primeiras 10: [${colunas.slice(0, 10).join(' | ')}...]`);
             }
             
             const indice = {};
             let registrosValidos = 0;
             let semMatricula = 0;
             let semCodigo = 0;
+            let semValor = 0;
+            let erros = [];
             
             folha.forEach((row, idx) => {
               const matricula = AuditEngine.normalizarMatricula(row);
               const codigo = AuditEngine.extrairCodigoEvento(row);
               const valor = AuditEngine.extrairValor(row);
               
-              if (idx < 2) {
-                console.log(`   🔍 [${idx + 1}] mat="${matricula}" cod="${codigo}" val=${valor}`);
+              if (idx === 0) {
+                console.log(`   🔍 [REG 1] mat="${matricula}" cod="${codigo}" val=${valor}`);
+                if (!matricula) console.log(`      ⚠️  Campo de matrícula não encontrado`);
+                if (!codigo) console.log(`      ⚠️  Campo de código não encontrado`);
+                if (valor === 0) console.log(`      ⚠️  Campo de valor não encontrado ou é 0`);
               }
               
-              if (!matricula) { semMatricula++; return; }
-              if (!codigo) { semCodigo++; return; }
+              if (!matricula) { 
+                semMatricula++; 
+                if (semMatricula <= 2) erros.push(`Linha ${idx + 2}: SEM MATRÍCULA (colunas: ${colunas.slice(0,3).join(',')})`);
+                return; 
+              }
+              if (!codigo) { 
+                semCodigo++; 
+                if (semCodigo <= 2) erros.push(`Linha ${idx + 2}: SEM CÓDIGO (mat=${matricula})`);
+                return; 
+              }
               
               registrosValidos++;
               if (!indice[matricula]) indice[matricula] = {};
@@ -127,13 +177,20 @@
             );
             
             console.log(`   ✅ ${registrosValidos} válidos | ${totalMat} matrículas | ${totalEvt} eventos`);
-            if (semMatricula > 0) console.log(`   ⚠️  ${semMatricula} sem matrícula`);
-            if (semCodigo > 0) console.log(`   ⚠️  ${semCodigo} sem código`);
+            if (semMatricula > 0) console.log(`   ❌ ${semMatricula} registros SEM MATRÍCULA`);
+            if (semCodigo > 0) console.log(`   ❌ ${semCodigo} registros SEM CÓDIGO`);
+            if (erros.length > 0) {
+              console.log(`   📝 Problemas encontrados:`);
+              erros.forEach(e => console.log(`      - ${e}`));
+            }
             
             if (totalMat > 0) {
               const amostra = Object.keys(indice)[0];
-              const evts = Object.keys(indice[amostra]).slice(0, 3);
-              console.log(`   📌 Mat ${amostra}: [${evts.join(', ')}]`);
+              const evts = Object.keys(indice[amostra]).slice(0, 5);
+              const amostraEvt = indice[amostra][evts[0]];
+              console.log(`   📊 Amostra - Mat ${amostra}: ${evts.length} tipos evento`);
+              console.log(`      Codes: [${evts.join(', ')}]`);
+              console.log(`      Primeiro evento: Código ${evts[0]}, ${amostraEvt.length} ocorrências, R$ ${amostraEvt.reduce((s,o)=>s+o.valor,0).toFixed(2)}`);
             }
             
             return indice;
@@ -249,39 +306,52 @@
             console.log('\n━━━ R5: ADMITIDOS ━━━');
             const r5 = [];
             const matsAdm = new Set(baseAdmitidos.map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean));
+            console.log(`   📌 ${matsAdm.size} matrículas de admitidos`);
             matsAdm.forEach(mat => {
+              // Admitido deve estar na folha atual
               if (!indiceAtual[mat]) {
                 r5.push({ 
-                  regra: 'R5', tipo: 'ADMITIDO_NAO_NA_FOLHA', severidade: 'ALTA',
-                  matricula: mat, descricao: 'Admitido ausente', impacto: 0 
+                  regra: 'R5', tipo: 'ADMITIDO_NAO_NA_FOLHA_ATUAL', severidade: 'ALTA',
+                  matricula: mat, descricao: 'Admitido não consta na folha atual', impacto: 0 
                 });
               }
+              // Admitido NÃO deve estar na folha anterior
               if (indiceAnterior[mat]) {
                 r5.push({ 
-                  regra: 'R5', tipo: 'ADMITIDO_JA_EXISTIA', severidade: 'ALTA',
-                  matricula: mat, descricao: 'Admitido já existia', impacto: 0 
+                  regra: 'R5', tipo: 'ADMITIDO_EXISTIA_ANTES', severidade: 'ALTA',
+                  matricula: mat, descricao: 'Admitido já existia na folha anterior', impacto: 0 
                 });
               }
             });
-            console.log(`✅ ${matsAdm.size} admitidos → ${r5.length} divergências`);
+            console.log(`✅ ${r5.length} divergências`);
             
             // R6
             console.log('\n━━━ R6: DEMITIDOS ━━━');
             const r6 = [];
             const matsDem = new Set(baseDemitidos.map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean));
+            console.log(`   📌 ${matsDem.size} matrículas de demitidos`);
             matsDem.forEach(mat => {
+              // Demitido PODE estar na folha atual, mas APENAS com códigos de rescisão (9000-9003)
               if (indiceAtual[mat]) {
                 const evts = Object.keys(indiceAtual[mat]);
-                const temNaoResc = evts.some(c => !['9000','9001','9002','9003'].includes(c));
-                if (temNaoResc) {
+                const codsRescisao = evts.filter(c => ['9000','9001','9002','9003'].includes(c));
+                const codsOutros = evts.filter(c => !['9000','9001','9002','9003'].includes(c));
+                
+                if (codsOutros.length > 0) {
                   r6.push({ 
-                    regra: 'R6', tipo: 'DEMITIDO_NA_FOLHA', severidade: 'ALTA',
-                    matricula: mat, descricao: `${evts.length} eventos`, impacto: 0 
+                    regra: 'R6', tipo: 'DEMITIDO_COM_EVENTOS_NAO_RESCISAO', severidade: 'ALTA',
+                    matricula: mat, descricao: `Demitido com ${codsOutros.length} evento(s) não rescisão`, impacto: 0 
                   });
                 }
+              } else {
+                // Demitido que não consta na folha atual
+                r6.push({ 
+                  regra: 'R6', tipo: 'DEMITIDO_AUSENTE', severidade: 'MEDIA',
+                  matricula: mat, descricao: 'Demitido ausente na folha atual', impacto: 0 
+                });
               }
             });
-            console.log(`✅ ${matsDem.size} demitidos → ${r6.length} divergências`);
+            console.log(`✅ ${r6.length} divergências`);
             
             const todas = [...r1, ...r2, ...r3, ...r5, ...r6, ...r7];
             
@@ -331,20 +401,111 @@
           const handleUpload = async (tipo, e) => {
             const file = e.target.files[0];
             if (!file) return;
-            
-            const text = await file.text();
-            const lines = text.split('\n').filter(l => l.trim());
-            const start = tipo.includes('folha') ? 2 : 1;
-            const header = lines[start].split(';').map(h => h.replace(/"/g, '').trim());
-            const rows = lines.slice(start + 1).map((line, idx) => {
-              const vals = line.split(';').map(v => v.replace(/"/g, '').trim());
-              const row = { _lineNumber: idx + start + 2 };
-              header.forEach((h, i) => { row[h] = vals[i] || ''; });
-              return row;
-            });
-            
-            setArquivos(p => ({ ...p, [tipo]: { nome: file.name, rows } }));
-            setStats(p => ({ ...p, [tipo]: calcStats(rows, tipo) }));
+
+            try {
+              // Ler como ArrayBuffer e tentar decodificar com UTF-8, cair para windows-1252 se necessário
+              const buffer = await file.arrayBuffer();
+              let decoder = new TextDecoder('utf-8');
+              let text = decoder.decode(buffer);
+              let usedEncoding = 'utf-8';
+
+              // Se houver muitos caracteres de substituição � (U+FFFD), tentar windows-1252
+              const replacementCount = (text.match(/�/g) || []).length;
+              if (replacementCount > 0) {
+                try {
+                  decoder = new TextDecoder('windows-1252');
+                  text = decoder.decode(buffer);
+                  usedEncoding = 'windows-1252';
+                } catch (e) {
+                  // fallback mantido como utf-8
+                }
+              }
+
+              const rawLines = text.split(/\r?\n/);
+              const lines = rawLines.filter(l => l && l.trim().length > 0);
+
+              if (lines.length < 1) {
+                console.error(`❌ ${tipo}: Arquivo vazio ou inválido`);
+                return;
+              }
+
+              console.log(`📥 ${tipo}: Analisando arquivo...`);
+              console.log(`   Decoded with: ${usedEncoding}`);
+              console.log(`   Primeiras 200 chars: ${lines[0].substring(0, 200)}...`);
+
+              // Detectar delimitador examinando primeiras linhas
+              const sample = lines.slice(0, Math.min(6, lines.length));
+              const score = { ';': 0, ',': 0, '\t': 0 };
+              sample.forEach(l => {
+                score[';'] += (l.match(/;/g) || []).length;
+                score[','] += (l.match(/,/g) || []).length;
+                score['\t'] += (l.match(/\t/g) || []).length;
+              });
+              let delimiter = Object.entries(score).sort((a,b)=>b[1]-a[1])[0][0];
+              if (!delimiter) delimiter = ';';
+              console.log(`   Delimitador detectado: '${delimiter}' (tentativa automática)`);
+
+              // Função para normalizar texto simples (sem remover espaços)
+              const norm = (s) => s.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/["\s\uFFFD]/g, '').replace(/[^a-z0-9]/g, '');
+
+              // Detectar a linha real de cabeçalho: preferir linha que contenha palavras-chave
+              let headerIndex = 0;
+              for (let i = 0; i < Math.min(6, lines.length); i++) {
+                const cols = lines[i].split(delimiter).map(h => h.replace(/"/g, '').trim());
+                if (cols.length >= 3) {
+                  const joined = cols.join(' ');
+                  const n = norm(joined);
+                  if (/(matricul|matr|colaborador|nome|codigo|evento|valor)/.test(n)) {
+                    headerIndex = i;
+                    break;
+                  }
+                }
+                // fallback: linha que tem similar quantidade de colunas com a próxima linha
+                if (i < lines.length - 1) {
+                  const c1 = lines[i].split(delimiter).length;
+                  const c2 = lines[i+1].split(delimiter).length;
+                  if (c1 >= 3 && Math.abs(c1 - c2) <= 2) { headerIndex = i; break; }
+                }
+              }
+
+              const headerLine = lines[headerIndex];
+              console.log(`   Cabeçalho escolhido: linha ${headerIndex + 1}`);
+              console.log(`   Primeira linha do cabeçalho (bruta): ${headerLine.substring(0,200)}...`);
+
+              const header = headerLine.split(delimiter).map(h => h.replace(/"/g, '').trim());
+              console.log(`📊 ${header.length} colunas encontradas`);
+              console.log(`   Colunas: [${header.slice(0, 8).map((c, i) => `${i+1}:"${c}"`).join(', ')}...]`);
+
+              if (header.length === 1) {
+                console.warn(`⚠️  Possível problema de delimitador - apenas 1 coluna detectada`);
+              }
+
+              // Construir linhas de dados a partir de headerIndex+1
+              const dataLines = lines.slice(headerIndex + 1);
+
+              const rows = dataLines.map((line, idx) => {
+                const vals = line.split(delimiter).map(v => v.replace(/"/g, '').trim());
+                const row = { _lineNumber: headerIndex + 2 + idx };
+
+                // Log primeiro registro para debug
+                if (idx === 0) {
+                  console.log(`   📝 Primeiro registro (${vals.length} valores):`);
+                  vals.slice(0, 5).forEach((v, i) => {
+                    console.log(`      [${i}] = "${v}"`);
+                  });
+                }
+
+                header.forEach((h, i) => { row[h] = vals[i] || ''; });
+                return row;
+              }).filter(r => Object.values(r).some(v => v && v.toString().trim() !== ''));
+
+              console.log(`   ✅ ${rows.length} registros carregados`);
+              setArquivos(p => ({ ...p, [tipo]: { nome: file.name, rows } }));
+              setStats(p => ({ ...p, [tipo]: calcStats(rows, tipo) }));
+            } catch (err) {
+              console.error(`❌ Erro ao processar ${tipo}:`, err);
+              alert(`Erro ao carregar ${tipo}: ${err.message}`);
+            }
           };
 
           const remover = (tipo) => {
@@ -354,17 +515,35 @@
           };
 
           const executar = () => {
-            console.clear();
-            setEtapa('proc');
-            setTimeout(() => {
-              const res = AuditEngine.executarAuditoria(
-                arquivos.folha_atual?.rows || [], arquivos.folha_anterior?.rows || [],
-                arquivos.admitidos?.rows || [], arquivos.demitidos?.rows || [],
-                arquivos.ferias?.rows || [], arquivos.licenciados?.rows || []
-              );
-              setResultados(res);
-              setEtapa('res');
-            }, 1500);
+            try {
+              console.clear();
+              console.log('🚀 Iniciando auditoria...');
+              setEtapa('proc');
+              
+              setTimeout(() => {
+                try {
+                  const res = AuditEngine.executarAuditoria(
+                    arquivos.folha_atual?.rows || [], 
+                    arquivos.folha_anterior?.rows || [],
+                    arquivos.admitidos?.rows || [], 
+                    arquivos.demitidos?.rows || [],
+                    arquivos.ferias?.rows || [], 
+                    arquivos.licenciados?.rows || []
+                  );
+                  
+                  console.log('✅ Auditoria concluída com sucesso');
+                  setResultados(res);
+                  setEtapa('res');
+                } catch (err) {
+                  console.error('❌ Erro durante auditoria:', err);
+                  alert(`Erro: ${err.message}`);
+                  setEtapa('upload');
+                }
+              }, 1500);
+            } catch (err) {
+              console.error('❌ Erro ao iniciar auditoria:', err);
+              alert(`Erro: ${err.message}`);
+            }
           };
 
           if (etapa === 'proc') {
