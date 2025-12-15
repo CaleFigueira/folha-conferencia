@@ -1,0 +1,40 @@
+# ===== DADOS DE ENTRADA - NÃO VERSIONADO =====
+ENTRADA/
+!ENTRADA/.gitkeep
+
+# ===== SAÍDA DE EXPORTAÇÃO - NÃO VERSIONADO =====
+SAIDA/
+!SAIDA/.gitkeep
+
+# ===== LOGS - NÃO VERSIONADO =====
+LOGS/
+!LOGS/.gitkeep
+
+# ===== ARQUIVOS TEMPORÁRIOS =====
+*.tmp
+*.log
+*.bak
+*.swp
+*.swo
+*~
+
+# ===== IDE E FERRAMENTAS =====
+.vscode/
+.idea/
+*.code-workspace
+node_modules/
+package-lock.json
+
+# ===== SISTEMA OPERACIONAL =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== ARQUIVOS DESNECESSÁRIOS =====
+Others/
+*.pycache
+
+# ===== DEBUG (mantém apenas index.html) =====
+Fonte/debug.html
+Fonte/DEBUG.md
+Fonte/csv-parser-helper.js

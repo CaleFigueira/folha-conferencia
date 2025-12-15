@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auditoria CSB - Sistema Completo</title>
+    <title>Auditoria Folha - Sistema Completo</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,7 +13,7 @@
     <div id="root"></div>
     
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useMemo } = React;
         
         const Upload = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>;
         const CheckCircle = () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
@@ -109,6 +109,18 @@
               'employee name',
               'funcionário'
             ]);
+          },
+
+          extrairTipoEvento: (row) => {
+            return AuditEngine.buscarCampoEspacos(row, ['tipo evento', 'Tipo Evento', 'type event']) || 'N/A';
+          },
+
+          extrairNomeEvento: (row) => {
+            return AuditEngine.buscarCampoEspacos(row, ['evento', 'Evento', 'event', 'nome evento']) || 'N/A';
+          },
+
+          extrairCodigoFolha: (row) => {
+            return AuditEngine.buscarCampoEspacos(row, ['codigo folha', 'Código Folha', 'código folha', 'folha', 'code']) || 'N/A';
           },
           
           criarIndiceEventos: (folha, label) => {
@@ -220,8 +232,12 @@
                     r1.push({
                       regra: 'R1', tipo: 'EVENTO_NOVO', 
                       severidade: oc.valor > 1000 ? 'ALTA' : 'MEDIA',
-                      matricula: mat, nome: oc.nome, codigoEvento: cod, valor: oc.valor,
-                      descricao: `Novo: ${cod} (${oc.nome || 'N/A'})`, 
+                      matricula: mat, codigoFolha: AuditEngine.extrairCodigoFolha(oc.dados), 
+                      tipoEvento: AuditEngine.extrairTipoEvento(oc.dados),
+                      codigoEvento: cod, 
+                      nomeEvento: AuditEngine.extrairNomeEvento(oc.dados),
+                      valor: oc.valor,
+                      descricao: `Novo: ${cod}`, 
                       impacto: oc.valor
                     });
                   });
@@ -245,7 +261,11 @@
                     r2.push({
                       regra: 'R2', tipo: 'EVENTO_REMOVIDO',
                       severidade: oc.valor > 1000 ? 'ALTA' : 'MEDIA',
-                      matricula: mat, nome: oc.nome, codigoEvento: cod, valorAnterior: oc.valor,
+                      matricula: mat, codigoFolha: AuditEngine.extrairCodigoFolha(oc.dados), 
+                      tipoEvento: AuditEngine.extrairTipoEvento(oc.dados),
+                      codigoEvento: cod, 
+                      nomeEvento: AuditEngine.extrairNomeEvento(oc.dados),
+                      valorAnterior: oc.valor,
                       descricao: `Removido: ${cod}`,
                       impacto: -oc.valor
                     });
@@ -273,8 +293,11 @@
                   r3.push({
                     regra: 'R3', tipo: 'VALOR_ALTERADO',
                     severidade: Math.abs(varPerc) > 20 ? 'ALTA' : 'MEDIA',
-                    matricula: mat, nome: ocsAtual[0].nome, 
-                    codigoEvento: cod, valorAnterior: valAnt, valorAtual: valAtual,
+                    matricula: mat, codigoFolha: AuditEngine.extrairCodigoFolha(ocsAtual[0].dados),
+                    tipoEvento: AuditEngine.extrairTipoEvento(ocsAtual[0].dados),
+                    codigoEvento: cod, 
+                    nomeEvento: AuditEngine.extrairNomeEvento(ocsAtual[0].dados),
+                    valorAnterior: valAnt, valorAtual: valAtual,
                     variacao: var_, variacaoPerc: varPerc,
                     descricao: `${cod} variou ${Math.abs(varPerc).toFixed(1)}%`,
                     impacto: var_
@@ -292,8 +315,11 @@
                 if (ocs.length > 1) {
                   r7.push({
                     regra: 'R7', tipo: 'EVENTO_DUPLICADO', severidade: 'ALTA',
-                    matricula: mat, nome: ocs[0].nome,
-                    codigoEvento: cod, quantidadeOcorrencias: ocs.length,
+                    matricula: mat, codigoFolha: AuditEngine.extrairCodigoFolha(ocs[0].dados),
+                    tipoEvento: AuditEngine.extrairTipoEvento(ocs[0].dados),
+                    codigoEvento: cod, 
+                    nomeEvento: AuditEngine.extrairNomeEvento(ocs[0].dados),
+                    quantidadeOcorrencias: ocs.length,
                     descricao: `${cod} repetido ${ocs.length}x`,
                     impacto: ocs.reduce((s, o) => s + o.valor, 0)
                   });
@@ -384,6 +410,10 @@
           const [arquivos, setArquivos] = useState({});
           const [stats, setStats] = useState({});
           const [resultados, setResultados] = useState(null);
+          const [rubraSelecionada, setRubraSelecionada] = useState(null);
+          const [segmentoSelecionado, setSegmentoSelecionado] = useState(null);
+          const [colunasVisivel, setColunasVisivel] = useState(['codigo_folha', 'matricula', 'tipoEvento', 'codigo', 'nomeEvento', 'valor']);
+          const [colunasLargura, setColunasLargura] = useState({ codigo_folha: 120, matricula: 120, tipoEvento: 150, codigo: 100, nomeEvento: 150, valor: 100 });
 
           const fmt = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
@@ -396,6 +426,145 @@
               if (tipo.includes('folha')) total += AuditEngine.extrairValor(r);
             });
             return { totalRegistros: rows.length, colaboradores: mats.size, totalValor: tipo.includes('folha') ? total : null };
+          };
+
+          // Descrição das regras
+          const descricoes = {
+            'R1': 'Detecta eventos novos que não existiam na folha anterior',
+            'R2': 'Detecta eventos removidos que existiam antes e sumiram',
+            'R3': 'Detecta variações de valor superiores a 5% ou R$10',
+            'R5': 'Valida se admitidos constam na folha atual e não na anterior',
+            'R6': 'Valida se demitidos contêm apenas códigos de rescisão (9000-9003)',
+            'R7': 'Detecta eventos duplicados na mesma matrícula/código'
+          };
+
+          // Segmentação por tipo - SEMPRE executado (não dentro de condicional)
+          const divergPorTipo = useMemo(() => {
+            if (!resultados?.divergencias?.length) return {
+              'ferias': { nome: '🏖️ Com Férias no Mês', count: 0, divs: [] },
+              'admitidos': { nome: '👋 Admitidos no Mês', count: 0, divs: [] },
+              'demitidos': { nome: '💔 Demitidos no Mês', count: 0, divs: [] },
+              'licenciados': { nome: '🥼 Licenciados no Mês', count: 0, divs: [] }
+            };
+            
+            const tipos = {};
+            const ferias = (arquivos.ferias?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const admitidos = (arquivos.admitidos?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const demitidos = (arquivos.demitidos?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const licenciados = (arquivos.licenciados?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+
+            tipos['ferias'] = { nome: '🏖️ Com Férias no Mês', count: 0, divs: [] };
+            tipos['admitidos'] = { nome: '👋 Admitidos no Mês', count: 0, divs: [] };
+            tipos['demitidos'] = { nome: '💔 Demitidos no Mês', count: 0, divs: [] };
+            tipos['licenciados'] = { nome: '🥼 Licenciados no Mês', count: 0, divs: [] };
+
+            resultados.divergencias.forEach(d => {
+              const matStr = d.matricula.toString();
+              if (ferias.includes(matStr)) {
+                tipos['ferias'].divs.push(d);
+                tipos['ferias'].count++;
+              }
+              if (admitidos.includes(matStr)) {
+                tipos['admitidos'].divs.push(d);
+                tipos['admitidos'].count++;
+              }
+              if (demitidos.includes(matStr)) {
+                tipos['demitidos'].divs.push(d);
+                tipos['demitidos'].count++;
+              }
+              if (licenciados.includes(matStr)) {
+                tipos['licenciados'].divs.push(d);
+                tipos['licenciados'].count++;
+              }
+            });
+
+            return tipos;
+          }, [resultados?.divergencias?.length, arquivos.ferias?.rows?.length, arquivos.admitidos?.rows?.length, arquivos.demitidos?.rows?.length, arquivos.licenciados?.rows?.length, resultados, arquivos]);
+
+          // Segmentação FILTRADA por regra selecionada
+          const divergPorTipoFiltrado = useMemo(() => {
+            if (!rubraSelecionada || !resultados?.divergencias?.length) return divergPorTipo;
+            
+            const tipos = {};
+            const ferias = (arquivos.ferias?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const admitidos = (arquivos.admitidos?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const demitidos = (arquivos.demitidos?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+            const licenciados = (arquivos.licenciados?.rows || []).map(r => AuditEngine.normalizarMatricula(r)).filter(Boolean);
+
+            tipos['ferias'] = { nome: '🏖️ Com Férias no Mês', count: 0, divs: [] };
+            tipos['admitidos'] = { nome: '👋 Admitidos no Mês', count: 0, divs: [] };
+            tipos['demitidos'] = { nome: '💔 Demitidos no Mês', count: 0, divs: [] };
+            tipos['licenciados'] = { nome: '🥼 Licenciados no Mês', count: 0, divs: [] };
+
+            // Apenas divergências da regra selecionada
+            resultados.divergencias
+              .filter(d => d.regra === rubraSelecionada)
+              .forEach(d => {
+                const matStr = d.matricula.toString();
+                if (ferias.includes(matStr)) {
+                  tipos['ferias'].divs.push(d);
+                  tipos['ferias'].count++;
+                }
+                if (admitidos.includes(matStr)) {
+                  tipos['admitidos'].divs.push(d);
+                  tipos['admitidos'].count++;
+                }
+                if (demitidos.includes(matStr)) {
+                  tipos['demitidos'].divs.push(d);
+                  tipos['demitidos'].count++;
+                }
+                if (licenciados.includes(matStr)) {
+                  tipos['licenciados'].divs.push(d);
+                  tipos['licenciados'].count++;
+                }
+              });
+
+            return tipos;
+          }, [rubraSelecionada, resultados?.divergencias?.length, arquivos.ferias?.rows?.length, arquivos.admitidos?.rows?.length, arquivos.demitidos?.rows?.length, arquivos.licenciados?.rows?.length, resultados, arquivos]);
+
+          // Filtrar divergências baseado em seleções - SEMPRE executado
+          const divergFiltered = useMemo(() => {
+            if (!resultados?.divergencias) return [];
+            
+            let result = [...resultados.divergencias];
+            
+            if (rubraSelecionada) {
+              result = result.filter(d => d.regra === rubraSelecionada);
+            }
+            
+            if (segmentoSelecionado) {
+              const tiposRef = rubraSelecionada ? divergPorTipoFiltrado : divergPorTipo;
+              if (tiposRef[segmentoSelecionado]) {
+                const segDivs = tiposRef[segmentoSelecionado].divs;
+                result = result.filter(d => segDivs.includes(d));
+              }
+            }
+            
+            return result;
+          }, [resultados?.divergencias?.length, rubraSelecionada, segmentoSelecionado, divergPorTipo, divergPorTipoFiltrado]);
+
+          const exportarCSV = () => {
+            if (!divergFiltered || divergFiltered.length === 0) {
+              alert('Nenhuma divergência para exportar');
+              return;
+            }
+            const linhas = [['Código Folha', 'Matrícula', 'Tipo Evento', 'Código Evento', 'Evento', 'Valor']];
+            divergFiltered.forEach(d => {
+              linhas.push([
+                d.codigoFolha || 'N/A',
+                d.matricula,
+                d.tipoEvento || 'N/A',
+                d.codigoEvento || 'N/A',
+                d.nomeEvento || 'N/A',
+                d.impacto || ''
+              ]);
+            });
+            const csv = linhas.map(l => l.map(v => `"${v}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `divergencias_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
           };
 
           const handleUpload = async (tipo, e) => {
@@ -518,10 +687,14 @@
             try {
               console.clear();
               console.log('🚀 Iniciando auditoria...');
+              console.log('Etapa atual:', etapa);
+              console.log('Arquivos:', Object.keys(arquivos));
               setEtapa('proc');
+              console.log('Etapa definida para: proc');
               
               setTimeout(() => {
                 try {
+                  console.log('⏳ Iniciando processamento de auditoria...');
                   const res = AuditEngine.executarAuditoria(
                     arquivos.folha_atual?.rows || [], 
                     arquivos.folha_anterior?.rows || [],
@@ -531,11 +704,14 @@
                     arquivos.licenciados?.rows || []
                   );
                   
-                  console.log('✅ Auditoria concluída com sucesso');
+                  console.log('✅ Auditoria concluída:', res);
                   setResultados(res);
+                  console.log('Resultados definidos, etapa será alterada para: res');
                   setEtapa('res');
+                  console.log('Etapa alterada para: res');
                 } catch (err) {
                   console.error('❌ Erro durante auditoria:', err);
+                  console.error('Stack:', err.stack);
                   alert(`Erro: ${err.message}`);
                   setEtapa('upload');
                 }
@@ -562,8 +738,11 @@
             return (
               <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
                 <div className="max-w-7xl mx-auto space-y-6">
-                  <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl p-6">
-                    <h2 className="text-2xl font-bold">📋 Resultados - CSB Drogarias</h2>
+                  <div className="bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl p-6 flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">📋 Análise de Validações - CSB Drogarias</h2>
+                    <button onClick={exportarCSV} className="bg-white text-purple-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-100">
+                      📥 Exportar CSV
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-4 gap-4">
@@ -585,54 +764,109 @@
                     </div>
                   </div>
 
+                  {/* SEÇÃO 1: Regras com filtros */}
                   <div className="bg-white rounded-xl shadow p-6">
-                    <h3 className="font-bold mb-4">Por Regra</h3>
-                    <div className="grid grid-cols-6 gap-3">
-                      {Object.entries(resultados.metricas.porRegra).map(([r, q]) => (
-                        <div key={r} className="text-center p-3 bg-slate-50 rounded border">
-                          <div className="text-xs text-slate-600">{r}</div>
-                          <div className="text-2xl font-bold">{q}</div>
-                        </div>
-                      ))}
+                    <h3 className="font-bold text-lg mb-4">🔍 Regras de Validação : Quantidade de Críticas</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      {Object.entries(resultados.metricas.porRegra).map(([r, q]) => {
+                        const isSelected = rubraSelecionada === r;
+                        return (
+                          <button
+                            key={r}
+                            onClick={() => setRubraSelecionada(isSelected ? null : r)}
+                            className={`p-4 rounded-lg border-2 text-left transition-all ${
+                              isSelected 
+                                ? 'border-purple-600 bg-purple-50 shadow-md' 
+                                : 'border-slate-200 bg-slate-50 hover:border-purple-300'
+                            }`}
+                          >
+                            <div className="font-bold text-purple-700">{r}</div>
+                            <div className="text-xs text-slate-600 mt-1">{descricoes[r] || 'Validação'}</div>
+                            <div className="text-2xl font-bold mt-2 text-purple-600">{q} <span className="text-sm">críticas</span></div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {resultados.divergencias.length > 0 && (
-                    <div className="bg-white rounded-xl shadow p-6">
-                      <h3 className="font-bold mb-4">Top 100 Divergências</h3>
-                      <div className="space-y-2 max-h-96 overflow-y-auto">
-                        {resultados.divergencias.slice(0, 100).map((d, i) => (
-                          <div key={i} className={`border-l-4 rounded p-3 text-sm ${
-                            d.severidade === 'ALTA' ? 'bg-red-50 border-red-500' : 'bg-amber-50 border-amber-500'
-                          }`}>
-                            <div className="flex justify-between">
-                              <div>
-                                <div className="flex gap-2 mb-1">
-                                  <b>{d.regra}</b>
-                                  <span className="text-xs bg-white px-2 rounded">{d.matricula}</span>
-                                  {d.codigoEvento && <span className="text-xs font-mono">{d.codigoEvento}</span>}
-                                </div>
-                                <p className="text-xs">{d.descricao}</p>
-                                {d.variacao !== undefined && (
-                                  <div className="text-xs mt-1">
-                                    {fmt(d.valorAnterior)} → {fmt(d.valorAtual)} 
-                                    <span className={d.variacao >= 0 ? 'text-green-700' : 'text-red-700'}>
-                                      ({d.variacao >= 0 ? '+' : ''}{d.variacaoPerc?.toFixed(1)}%)
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                d.severidade === 'ALTA' ? 'bg-red-200' : 'bg-amber-200'
-                              }`}>
-                                {d.severidade}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
+                  {/* SEÇÃO 2: Segmentadores por tipo */}
+                  <div className="bg-white rounded-xl shadow p-6">
+                    <h3 className="font-bold text-lg mb-4">📊 Segmentação por Tipo de Evento</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {Object.entries(rubraSelecionada ? divergPorTipoFiltrado : divergPorTipo).map(([key, data]) => {
+                        const isSelected = segmentoSelecionado === key;
+                        return (
+                          <button
+                            key={key}
+                            onClick={() => setSegmentoSelecionado(isSelected ? null : key)}
+                            className={`p-4 rounded-lg border-2 text-center transition-all ${
+                              isSelected 
+                                ? 'border-blue-600 bg-blue-50 shadow-md' 
+                                : 'border-slate-200 bg-slate-50 hover:border-blue-300'
+                            }`}
+                          >
+                            <div className="text-2xl mb-2">{data.nome.split(' ')[0]}</div>
+                            <div className="text-sm font-bold text-slate-700">{data.nome.split(' ').slice(1).join(' ')}</div>
+                            <div className="text-3xl font-bold text-blue-600 mt-2">{data.count}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* SEÇÃO 3: Drill-through com tabela customizável */}
+                  <div className="bg-white rounded-xl shadow p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-lg">🔎 Detalhamento de Divergências ({divergFiltered.length})</h3>
+                      <div className="text-xs text-slate-500">
+                        {rubraSelecionada && <span className="bg-purple-100 px-2 py-1 rounded mr-2">{rubraSelecionada}</span>}
+                        {segmentoSelecionado && <span className="bg-blue-100 px-2 py-1 rounded">{(rubraSelecionada ? divergPorTipoFiltrado : divergPorTipo)[segmentoSelecionado]?.nome}</span>}
                       </div>
                     </div>
-                  )}
+
+                    {divergFiltered.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <p>Nenhuma divergência encontrada com os filtros aplicados</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 border-b-2 border-slate-300">
+                              <th className="px-3 py-2 text-left">Regra</th>
+                              {colunasVisivel.includes('codigo_folha') && <th className="px-3 py-2 text-left">Código Folha</th>}
+                              {colunasVisivel.includes('matricula') && <th className="px-3 py-2 text-left">Matrícula</th>}
+                              {colunasVisivel.includes('tipoEvento') && <th className="px-3 py-2 text-left">Tipo Evento</th>}
+                              {colunasVisivel.includes('codigo') && <th className="px-3 py-2 text-left">Código Evento</th>}
+                              {colunasVisivel.includes('nomeEvento') && <th className="px-3 py-2 text-left">Evento</th>}
+                              {colunasVisivel.includes('valor') && <th className="px-3 py-2 text-right">Valor</th>}
+                              <th className="px-3 py-2 text-center">Severidade</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {divergFiltered.map((d, i) => (
+                              <tr key={i} className="border-b border-slate-200 hover:bg-slate-50">
+                                <td className="px-3 py-2 font-bold text-purple-600">{d.regra}</td>
+                                {colunasVisivel.includes('codigo_folha') && <td className="px-3 py-2 font-mono">{d.codigoFolha || 'N/A'}</td>}
+                                {colunasVisivel.includes('matricula') && <td className="px-3 py-2 font-mono">{d.matricula}</td>}
+                                {colunasVisivel.includes('tipoEvento') && <td className="px-3 py-2">{d.tipoEvento}</td>}
+                                {colunasVisivel.includes('codigo') && <td className="px-3 py-2 font-bold">{d.codigoEvento || 'N/A'}</td>}
+                                {colunasVisivel.includes('nomeEvento') && <td className="px-3 py-2 text-xs">{d.nomeEvento}</td>}
+                                {colunasVisivel.includes('valor') && <td className="px-3 py-2 text-right font-bold">{fmt(d.impacto || 0)}</td>}
+                                <td className="px-3 py-2 text-center">
+                                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                                    d.severidade === 'ALTA' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
+                                  }`}>
+                                    {d.severidade}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
 
                   <button onClick={() => { setEtapa('upload'); setResultados(null); }} 
                     className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg">
@@ -657,7 +891,7 @@
           return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-8">
               <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold mb-2">📊 Auditoria CSB</h1>
+                <h1 className="text-3xl font-bold mb-2">📊 Auditoria Folha Pagamento</h1>
                 <p className="text-slate-600 mb-6">Sistema automatizado de auditoria de folha</p>
 
                 <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-3 mb-6 text-sm">

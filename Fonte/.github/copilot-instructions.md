@@ -1,141 +1,190 @@
 # 🤖 Instruções para Agentes de IA - Auditoria CSB
 
-## Contexto do Projeto
+## Visão Geral
 
-Sistema standalone de auditoria de folha de pagamento para CSB Drogarias. É uma **aplicação React 18 embedded em único arquivo HTML** - sem build system, sem dependências externas além de CDNs (React, Tailwind). Processa 6 arquivos CSV para detectar divergências em eventos de folha via 7 regras de auditoria.
+Sistema **single-file HTML** que realiza auditoria de folha de pagamento para CSB Drogarias. Processa 6 CSVs para validar eventos de folha através de 7 regras de negócio. Sem build system - apenas React 18 via CDN + lógica pura em JavaScript em único arquivo de 731 linhas.
 
-## Arquitetura Principal
+## Arquitetura Crítica
 
-### Stack Tecnológico
-- **Frontend**: React 18 (CDN) + Babel standalone + Tailwind CSS (CDN)
-- **Lógica**: Objeto `AuditEngine` contém toda lógica de processamento
-- **I/O**: Upload de CSV, processamento em-memória, display de resultados
-- **Padrão**: Single-file monolítico (`index.html`)
-
-### Componentes-chave
-1. **AuditEngine** - Motor de auditoria com 7 regras (R1-R7)
-   - `criarIndiceEventos()` - Converte CSV em índice: `{matrícula: {código: [ocorrências]}}`
-   - `executarAuditoria()` - Orquestra todas as regras
-   - Normalização: Flexível para espaços e acentos em nomes de coluna
-
-2. **PayrollAuditApp** - Componente React com fluxo de 3 etapas
-   - `upload`: Aceita 6 CSVs específicos
-   - `proc`: Processamento (1.5s delay para UX)
-   - `res`: Exibe resultados em dashboard
-
-3. **Regras de Auditoria**
-   - **R1**: Eventos novos (não existiam na folha anterior)
-   - **R2**: Eventos removidos (existiam antes, sumiram)
-   - **R3**: Valor alterado (variação >5% E >R$10)
-   - **R5**: Validação de admitidos
-   - **R6**: Validação de demitidos (apenas códigos 9000-9003)
-   - **R7**: Eventos duplicados na mesma matrícula/código
-
-## Padrões Críticos
-
-### Normalização de Dados
+### Estrutura de Dados Principal: Índice de Eventos
 ```javascript
-// Sempre usar AuditEngine.limpar() para comparações
-// Remove acentos, espaços, caracteres especiais
-// Exemplo: "Matricula Colaborador" → "matriculacobirador"
-```
-
-### Busca de Campos
-- **Preferir `buscarCampoEspacos()`** - Mantém espaços, mais flexível com encoding ISO-8859-1
-- Funciona com variações: "codigo evento", "codigoevento", "cod evento", "codev"
-- Campo não encontrado retorna `null` - **validar sempre**
-
-### Estrutura de Índice
-```javascript
-// Índice padrão retornado por criarIndiceEventos()
 {
-  "1234": {           // matrícula
-    "5262": [         // código evento
+  "1234": {              // matrícula normalizada
+    "5262": [            // código de evento
       { valor: 1500, linha: 5, nome: "João Silva", dados: {...} },
-      { valor: 1500, linha: 8, nome: "João Silva", dados: {...} }
+      { valor: 1500, linha: 8, nome: "João Silva", dados: {...} }  // duplicado
     ]
   }
 }
 ```
+Este formato alimenta **todas as 7 regras**. Gerado por `AuditEngine.criarIndiceEventos()`.
 
-### Tolerância de R3
-- **Baseline**: 5% de variação percentual E R$10 de diferença absoluta
-- Se `Math.abs(varPerc) > 5 AND Math.abs(var_) > 10` → flagar
-- Evita divergências de centavos
+### Fluxo de Processamento
+1. **Upload** (etapa='upload'): Usuário carrega 6 CSVs específicos
+2. **Parse** (CSVParser.parsarCSV): Detecta delimitador (`;`, `,`, `\t`, `|`), normaliza encoding, pula linhas vazias
+3. **Indexação** (criarIndiceEventos): Agrupa eventos por matrícula→código, mantém valores e dados
+4. **Auditoria** (executarAuditoria): Aplica 7 regras comparando folha atual vs anterior
+5. **Renderização** (etapa='res'): Dashboard com divergências por severidade
 
-### Equivalência de Férias
+### Componentes Principais
+- **AuditEngine**: Objeto com lógica pura de auditoria (criarIndiceEventos, executarAuditoria, 7 regras)
+- **CSVParser**: Parse robusto com detecção automática de delimitador
+- **PayrollAuditApp**: Componente React com `useState`, gerencia 3 etapas de fluxo
+
+## Padrões Vitais
+
+### ✅ Busca de Campos (Regra Ouro)
 ```javascript
-// Mapeamento bidirecional: evento 6262 ↔ 5262 são equivalentes
-equivalenciaFerias: { '6262': '5262', '6254': '5254', ... }
-// R1/R2 não flagam se existe equivalente na outra folha
+// SEMPRE usar buscarCampoEspacos() - nunca direct row[key]
+AuditEngine.buscarCampoEspacos(row, ['matricula', 'matrícula', 'mat'])
+// Retorna PRIMEIRO match normalizando acentos mas PRESERVANDO espaços
+// Falha? Retorna null - SEMPRE VALIDAR: if (!mat) { return; }
+```
+**Por quê?** CSVs em ISO-8859-1 com variações de coluna ("Matricula Colaborador" vs "Matrícula" vs "Mat Col").
+
+### ✅ Normalização Sob Demanda
+```javascript
+AuditEngine.limpar(string)  // Remove acentos+espaços: "Matricula" → "matricula"
+// USO: Comparar valores **após** extração, não em busca de campos
 ```
 
-## Convenções Específicas
-
-### Nomes de Variáveis
-- `mat` / `matricula` - matrícula do colaborador
-- `cod` / `codigo` - código do evento de folha
-- `val` / `valor` - valor monetário (float)
-- `oc` / `ocs` - ocorrência/ocorrências (registros)
-- `r1`, `r2`, etc - array de divergências da regra
-
-### Propriedades de Divergência
+### ✅ Estrutura de Divergência (Template)
+Toda regra retorna array com este shape:
 ```javascript
 {
-  regra: "R1",                    // Regra que gerou
-  tipo: "EVENTO_NOVO",            // Tipo específico
-  severidade: "ALTA" | "MEDIA",   // ALTA: valor>1000, MEDIA: resto
-  matricula: "1234",              // Identificador
-  codigoEvento: "5262",           // Evento envolvido
-  descricao: "...",               // Mensagem legível
-  impacto: 1500                   // Valor financeiro (pode ser negativo)
+  regra: "R1",
+  tipo: "EVENTO_NOVO",
+  severidade: "ALTA" | "MEDIA",
+  matricula: "1234",
+  codigoEvento: "5262",
+  nome: "João Silva",
+  descricao: "Novo: 5262 (João Silva)",
+  impacto: 1500,  // Positivo (novo), negativo (removido)
+  // Campos extras por regra: valorAnterior, variacaoPerc, etc
 }
 ```
 
+## As 7 Regras Implementadas
+
+| Regra | Lógica | Comparação |
+|-------|--------|-----------|
+| **R1** | Evento em ATUAL mas NÃO em ANTERIOR | Verificar equivalência de férias |
+| **R2** | Evento em ANTERIOR mas NÃO em ATUAL | Verificar equivalência de férias |
+| **R3** | `abs(varPerc) > 5% AND abs(valor) > R$10` | Folhas atuais vs anteriores |
+| **R5** | Admitido deve estar em ATUAL, NÃO pode estar em ANTERIOR | Validação simples presença |
+| **R6** | Demitido em ATUAL: apenas códigos 9000-9003; pode estar ausente | Validação códigos rescisão |
+| **R7** | Mesmo evento (mat+cod) com >1 ocorrência na folha ATUAL | Detecção duplicatas |
+
+### Equivalência de Férias (Crítico)
+```javascript
+equivalenciaFerias: {
+  '6262': '5262', '6254': '5254', '6281': '5281', 
+  '6272': '5272', '5020': '5023'
+}
+// R1/R2: Não flagam divergência se existe equivalente na outra folha
+// Implementado com busca bidirecional (R2 inverte mapa)
+```
+
+## Convenções Código
+
+### Nomes de Variáveis
+- `mat` / `matricula`: string normalizada (sem espaços)
+- `cod` / `codigo`: string código evento (ex: "5262")
+- `val` / `valor`: float em reais
+- `ocs`: array de ocorrências
+- `indice`: mapa folha processada {mat → {cod → ocs}}
+- `r1`, `r2`, ... `r7`: array de divergências por regra
+
 ### Debugging
-- **Console.log abundante** no AuditEngine com emojis e separadores
-- F12 → Console mostra: colunas detectadas, registros válidos/inválidos, amostra de dados
-- Sempre logar primeiros 2 registros de cada folha para validar parsing
+```javascript
+// AuditEngine registra ABUNDANTEMENTE com emojis:
+console.log(`✅ ${r1.length} divergências`)  // Resultado
+console.log(`❌ ${semMatricula} registros SEM MATRÍCULA`)  // Erro
+console.log(`📝 Cabeçalho: "${line}"`)  // Context
+```
+Abrir **F12** no navegador mostra: colunas detectadas, amostra de dados, estatísticas por regra.
 
-## Pontos de Atenção
+## Pontos de Atenção Críticos
 
-### Encoding
-- CSVs esperados em **ISO-8859-1** (Windows-1252), não UTF-8
-- Acentos normalizados com replace (á→a, ç→c, etc)
+### 🔴 Encoding ISO-8859-1
+- Arquivos esperados em **Windows-1252** (não UTF-8)
+- Normalização em `buscarCampoEspacos()`: `replace(/[áàãâä]/g, 'a')`
+- Erro típico: UTF-8 quebra acentos
 
-### Edge Cases
-- **Arquivo vazio**: Retorna índice vazio `{}` - validar antes de comparar
-- **Sem matrícula/código**: Registros são pulados silenciosamente
-- **Duplicatas do mesmo evento**: R7 flagara como divergência
-- **Admitidos/Demitidos**: Apenas validam presença/ausência, não valores
+### 🔴 Índice Vazio
+```javascript
+if (Object.keys(indice).length === 0) {
+  // Arquivo vazio ou sem matrículas detectadas
+  // Loops O.entries() silenciosamente ignoram
+  // Validar antes de comparações
+}
+```
 
-### Performance
-- Adequado para ~10k registros por arquivo
-- Loop O(n) sobre folhas + O(n²) worst-case em comparações
-- Delay de 1.5s é apenas visual (setTimeout) - processamento é síncrono
+### 🔴 Campos Retornam null
+```javascript
+const mat = AuditEngine.normalizarMatricula(row);
+if (!mat) { semMatricula++; return; }  // Saltar registro inválido
+```
 
-## Tarefas Comuns
+### 🔴 Duplicatas R7 = Anomalia
+```javascript
+if (ocs.length > 1) {
+  // Múltiplas ocorrências mesmo evento → divergência HIGH severidade
+  // Isso é intencional per regra
+}
+```
 
-### Adicionar Nova Regra
-1. Criar função no AuditEngine
-2. Loop sobre índices (similar a R1-R3)
-3. Push para array de resultado
-4. Logar estatísticas
-5. Retornar array no final de `executarAuditoria()`
+### 🔴 Tolerância R3 (Dois Critérios)
+```javascript
+const tol = 5;  // 5% - requisito business
+if (Math.abs(varPerc) > tol && Math.abs(var_) > 10) {
+  // AMBAS condições devem ser true
+  // Evita centavos, permite 5% até R$10
+}
+```
 
-### Modificar Colunas Esperadas
-- Editar strings em `buscarCampoEspacos()` calls
-- Manter array de alternativas (com/sem espaço)
-- Testar com amostra de CSV real
+## Tarefas Frequentes
 
-### Alterar Tolerância de R3
-- Mudar `tol = 5` para novo percentual
-- Ajustar condição `Math.abs(var_) > 10` se necessário
-- Logar nas estatísticas
+### Adicionar Regra R8
+1. Criar seção comentada `// R8` no `executarAuditoria()`
+2. Loop `for (const [mat, evts] of Object.entries(indiceAtual))`
+3. Validar com `indiceAnterior[mat]?.[cod]` (optional chaining)
+4. Construir `{ regra: "R8", tipo: "...", severidade: "..." }`
+5. Fazer `r8.push({...})` e adicionar ao array final `todas`
+6. Logar resultado: `console.log('\n━━━ R8: DESCRIÇÃO ━━━'); console.log(`✅ ${r8.length} divergências`);`
 
-## Recursos & Links
+### Ajustar Colunas Esperadas
+- Procurar `buscarCampoEspacos(row, [...])` em AuditEngine
+- Adicionar string novo nome de coluna ao array
+- Testar com CSV real para confirmar detecção
+- Validar logs F12 primeiros 2 registros
 
-- **PRD**: `PRD.txt` (requisitos formais das 7 regras)
-- **Documentação React**: Uso mínimo - apenas `useState` para fluxo
-- **Tailwind**: Classes em `className` - nenhuma CSS customizada necessária
-- **Teste**: Upload real de CSV em index.html no navegador + F12
+### Modificar Tolerância R3
+- Mudar `const tol = 5` para novo percentual
+- Ajustar `Math.abs(var_) > 10` se necessário
+- Atualizar `severidade: Math.abs(varPerc) > 20 ? 'ALTA' : 'MEDIA'` se comportamento muda
+
+## Estrutura de Arquivos
+
+```
+Fonte/
+  index.html                          # 731 linhas - aplicação completa
+    ├─ AuditEngine (linhas ~80-350)  # Lógica
+    ├─ CSVParser (linhas ~10-80)     # Parse CSV robusto
+    └─ PayrollAuditApp (linhas ~350+) # React component
+  README.md                           # Como usar
+  .github/copilot-instructions.md    # Este arquivo
+```
+
+## Dependências
+- **React 18** (CDN: unpkg.com/react@18)
+- **Babel Standalone** (CDN: unpkg.com/@babel/standalone)
+- **Tailwind CSS** (CDN: cdn.tailwindcss.com)
+- Nenhuma dependência npm
+
+## Teste Rápido
+1. Abrir `index.html` em navegador
+2. Arrastar 6 CSVs (ou clicar upload)
+3. Clicar "Executar Auditoria"
+4. F12 → Console para logs (colunas detectadas, amostra registros, estatísticas)
+5. Resultados em dashboard: tabela com divergências filtráveis por severidade/regra
